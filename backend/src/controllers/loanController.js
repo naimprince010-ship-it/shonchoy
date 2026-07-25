@@ -295,40 +295,17 @@ async function getOverdueLoans(req, res) {
     const userId = req.user.id;
     const today = new Date();
 
+    const { buildRoleFilter } = require('../utils/roleHelper');
+    const scheduleFilter = await buildRoleFilter(userId, userRole, 'schedule');
+
     // Base query: due date is in the past, status is PENDING
-    let whereClause = {
+    const whereClause = {
+      ...scheduleFilter,
       due_date: {
         lt: today
       },
       status: 'PENDING'
     };
-
-    // Role-based filtering
-    // We need to fetch the user to get their branch_id if they are a BRANCH_MANAGER
-    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-
-    if (userRole === 'FIELD_OFFICER') {
-      whereClause.loan = {
-        client: {
-          group: {
-            center: {
-              field_officer_id: userId
-            }
-          }
-        }
-      };
-    } else if (userRole === 'BRANCH_MANAGER') {
-      whereClause.loan = {
-        client: {
-          group: {
-            center: {
-              branch_id: currentUser.branch_id
-            }
-          }
-        }
-      };
-    }
-    // ADMIN sees everything, no extra filter needed.
 
     const overdueInstallments = await prisma.loanInstallmentSchedule.findMany({
       where: whereClause,

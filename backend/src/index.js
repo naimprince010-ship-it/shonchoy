@@ -9,6 +9,7 @@ const groupRoutes = require('./routes/groupRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const savingsRoutes = require('./routes/savingsRoutes');
 const loanRoutes = require('./routes/loanRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const { authMiddleware } = require('./middleware/authMiddleware');
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/api/groups', authMiddleware, groupRoutes);
 app.use('/api/clients', authMiddleware, clientRoutes);
 app.use('/api/savings', authMiddleware, savingsRoutes);
 app.use('/api/loans', authMiddleware, loanRoutes);
+app.use('/api/reports', authMiddleware, reportRoutes);
 
 // Health check
 app.get('/', (req, res) => {
