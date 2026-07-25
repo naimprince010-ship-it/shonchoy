@@ -3,6 +3,11 @@ const cors = require('cors');
 require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
+const branchRoutes = require('./routes/branchRoutes');
+const centerRoutes = require('./routes/centerRoutes');
+const groupRoutes = require('./routes/groupRoutes');
+const clientRoutes = require('./routes/clientRoutes');
+const { authMiddleware } = require('./middleware/authMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,6 +18,10 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/branches', authMiddleware, branchRoutes);
+app.use('/api/centers', authMiddleware, centerRoutes);
+app.use('/api/groups', authMiddleware, groupRoutes);
+app.use('/api/clients', authMiddleware, clientRoutes);
 
 // Health check
 app.get('/', (req, res) => {
