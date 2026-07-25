@@ -86,7 +86,16 @@ async function createClient(req, res) {
         photo_url,
         guardian_name,
         group_id: parseInt(group_id, 10),
+        savings_account: {
+          create: {
+            account_type: 'COMPULSORY',
+            balance: 0.0,
+          }
+        }
       },
+      include: {
+        savings_account: true,
+      }
     });
     return res.status(201).json(client);
   } catch (err) {
