@@ -289,4 +289,94 @@ async function addRepayment(req, res) {
   }
 }
 
-module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment };
+async function getOverdueLoans(req, res) {
+  try {
+    const userRole = req.user.role;
+    const userId = req.user.id;
+    const today = new Date();
+
+    // Base query: due date is in the past, status is PENDING
+    let whereClause = {
+      due_date: {
+        lt: today
+      },
+      status: 'PENDING'
+    };
+
+    // Role-based filtering
+    // We need to fetch the user to get their branch_id if they are a BRANCH_MANAGER
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (userRole === 'FIELD_OFFICER') {
+      whereClause.loan = {
+        client: {
+          group: {
+            center: {
+              field_officer_id: userId
+            }
+          }
+        }
+      };
+    } else if (userRole === 'BRANCH_MANAGER') {
+      whereClause.loan = {
+        client: {
+          group: {
+            center: {
+              branch_id: currentUser.branch_id
+            }
+          }
+        }
+      };
+    }
+    // ADMIN sees everything, no extra filter needed.
+
+    const overdueInstallments = await prisma.loanInstallmentSchedule.findMany({
+      where: whereClause,
+      include: {
+        loan: {
+          include: {
+            client: {
+              include: {
+                group: {
+                  include: {
+                    center: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        due_date: 'asc'
+      }
+    });
+
+    // Format the response and calculate days overdue
+    const formattedData = overdueInstallments.map(inst => {
+      const msInDay = 24 * 60 * 60 * 1000;
+      const diffMs = today.getTime() - new Date(inst.due_date).getTime();
+      const daysOverdue = Math.floor(diffMs / msInDay);
+
+      return {
+        installment_schedule_id: inst.id,
+        loan_id: inst.loan_id,
+        installment_number: inst.installment_number,
+        due_date: inst.due_date,
+        total_due: inst.total_due,
+        days_overdue: daysOverdue,
+        client_name: inst.loan.client.name,
+        phone: inst.loan.client.phone,
+        group_name: inst.loan.client.group.name,
+        center_name: inst.loan.client.group.center.name
+      };
+    });
+
+    return res.json({ data: formattedData });
+  } catch (err) {
+    console.error('Error fetching overdue loans:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+}
+
+module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans };

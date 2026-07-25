@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment } = require('../controllers/loanController');
+const { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans } = require('../controllers/loanController');
 const { roleMiddleware } = require('../middleware/authMiddleware');
 
 // POST /api/loans - Create application (Accessible by Field Officer, Branch Manager, Admin)
 router.post('/', createLoanApplication);
+
+// GET /api/loans/overdue - View overdue loans
+router.get('/overdue', getOverdueLoans);
 
 // GET /api/loans/:id - View loan details
 router.get('/:id', getLoanById);
