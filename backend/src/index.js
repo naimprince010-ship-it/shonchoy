@@ -10,6 +10,7 @@ const groupRoutes = require('./routes/groupRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const savingsRoutes = require('./routes/savingsRoutes');
 const loanRoutes = require('./routes/loanRoutes');
+const loanProductRoutes = require('./routes/loanProductRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 const { authMiddleware } = require('./middleware/authMiddleware');
@@ -29,6 +30,7 @@ app.use('/api/groups', authMiddleware, groupRoutes);
 app.use('/api/clients', authMiddleware, clientRoutes);
 app.use('/api/savings', authMiddleware, savingsRoutes);
 app.use('/api/loans', authMiddleware, loanRoutes);
+app.use('/api/loan-products', authMiddleware, loanProductRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 

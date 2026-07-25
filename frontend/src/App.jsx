@@ -9,6 +9,9 @@ import ClientList from './pages/clients/ClientList';
 import ClientForm from './pages/clients/ClientForm';
 import ClientDetail from './pages/clients/ClientDetail';
 import GroupManagement from './pages/groups/GroupManagement';
+import LoanList from './pages/loans/LoanList';
+import LoanForm from './pages/loans/LoanForm';
+import LoanDetail from './pages/loans/LoanDetail';
 
 function App() {
   return (
@@ -24,6 +27,9 @@ function App() {
               <Route path="/clients/new" element={<ClientForm />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
               <Route path="/groups" element={<GroupManagement />} />
+              <Route path="/loans" element={<LoanList />} />
+              <Route path="/loans/new" element={<LoanForm />} />
+              <Route path="/loans/:id" element={<LoanDetail />} />
               {/* Future protected routes go here */}
             </Route>
           </Route>

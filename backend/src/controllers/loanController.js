@@ -86,7 +86,10 @@ async function getLoanById(req, res) {
           select: { id: true, name: true, role: true }
         },
         schedules: {
-          orderBy: { installment_number: 'asc' }
+          orderBy: { installment_number: 'asc' },
+          include: {
+            repayments: true
+          }
         }
       }
     });
@@ -98,6 +101,42 @@ async function getLoanById(req, res) {
     return res.json(loan);
   } catch (err) {
     console.error('Error fetching loan:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+}
+
+async function getAllLoans(req, res) {
+  try {
+    const { status } = req.query;
+    let whereClause = {};
+    if (status) {
+      whereClause.status = status;
+    }
+
+    const loans = await prisma.loan.findMany({
+      where: whereClause,
+      include: {
+        client: true,
+        loan_product: true
+      },
+      orderBy: { id: 'desc' }
+    });
+
+    return res.json(loans);
+  } catch (err) {
+    console.error('Error fetching all loans:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+}
+
+async function getLoanProducts(req, res) {
+  try {
+    const products = await prisma.loanProduct.findMany({
+      where: { is_active: true }
+    });
+    return res.json(products);
+  } catch (err) {
+    console.error('Error fetching loan products:', err);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 }
@@ -356,4 +395,4 @@ async function getOverdueLoans(req, res) {
   }
 }
 
-module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans };
+module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans, getAllLoans, getLoanProducts };

@@ -61,9 +61,18 @@ const ClientDetail = () => {
           </Link>
           <h2 className="text-2xl font-bold text-slate-900">Client Profile</h2>
         </div>
-        <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${client.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
-          {client.status}
-        </span>
+        <div className="flex items-center space-x-3">
+          <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${client.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
+            {client.status}
+          </span>
+          <Link 
+            to="/loans/new" 
+            state={{ client_id: client.id }}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded shadow hover:bg-blue-700"
+          >
+            Apply for Loan
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

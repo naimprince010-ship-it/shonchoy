@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans } = require('../controllers/loanController');
+const { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans, getAllLoans } = require('../controllers/loanController');
 const { roleMiddleware } = require('../middleware/authMiddleware');
+
+// GET /api/loans - List all loans
+router.get('/', getAllLoans);
 
 // POST /api/loans - Create application (Accessible by Field Officer, Branch Manager, Admin)
 router.post('/', createLoanApplication);
