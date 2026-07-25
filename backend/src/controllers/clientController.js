@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 
 async function getClients(req, res) {
   try {
-    const { group_id, center_id } = req.query;
+    const { group_id, center_id, search } = req.query;
     
     let whereClause = {};
     if (group_id) {
@@ -13,6 +13,13 @@ async function getClients(req, res) {
       whereClause.group = {
         center_id: parseInt(center_id, 10),
       };
+    }
+
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { nid_number: { contains: search } }
+      ];
     }
 
     const clients = await prisma.client.findMany({

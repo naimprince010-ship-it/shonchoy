@@ -2,8 +2,12 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import ClientList from './pages/clients/ClientList';
+import ClientForm from './pages/clients/ClientForm';
+import ClientDetail from './pages/clients/ClientDetail';
 
 function App() {
   return (
@@ -13,8 +17,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Dashboard />} />
-            {/* Future protected routes go here */}
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/clients" element={<ClientList />} />
+              <Route path="/clients/new" element={<ClientForm />} />
+              <Route path="/clients/:id" element={<ClientDetail />} />
+              {/* Future protected routes go here */}
+            </Route>
           </Route>
 
           {/* Fallback route */}
