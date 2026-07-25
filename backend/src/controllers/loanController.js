@@ -84,6 +84,9 @@ async function getLoanById(req, res) {
         loan_product: true,
         approver: {
           select: { id: true, name: true, role: true }
+        },
+        schedules: {
+          orderBy: { installment_number: 'asc' }
         }
       }
     });
@@ -185,4 +188,105 @@ async function disburseLoan(req, res) {
   }
 }
 
-module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan };
+async function addRepayment(req, res) {
+  try {
+    const { id } = req.params;
+    const { installment_schedule_id, amount_paid } = req.body;
+    const recorded_by = req.user.id;
+    const paymentAmount = parseFloat(amount_paid);
+
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      return res.status(400).json({ error: 'Valid positive amount_paid is required.' });
+    }
+
+    // 1. Fetch Loan and validate status
+    const loan = await prisma.loan.findUnique({ where: { id: parseInt(id, 10) } });
+    if (!loan) {
+      return res.status(404).json({ error: 'Loan not found.' });
+    }
+    if (loan.status !== 'DISBURSED') {
+      return res.status(400).json({ error: `Repayment can only be made for DISBURSED loans. Current status is ${loan.status}.` });
+    }
+
+    // 2. Fetch Installment Schedule
+    const schedule = await prisma.loanInstallmentSchedule.findUnique({
+      where: { id: parseInt(installment_schedule_id, 10) },
+      include: {
+        repayments: true
+      }
+    });
+
+    if (!schedule || schedule.loan_id !== loan.id) {
+      return res.status(400).json({ error: 'Invalid installment schedule ID for this loan.' });
+    }
+
+    // 3. Calculate total paid so far
+    let totalPaidSoFar = 0;
+    for (const rep of schedule.repayments) {
+      totalPaidSoFar += parseFloat(rep.amount_paid);
+    }
+
+    const totalDue = parseFloat(schedule.total_due);
+    const remainingDue = totalDue - totalPaidSoFar;
+
+    // Check for overpayment
+    if (paymentAmount > remainingDue) {
+      return res.status(400).json({ 
+        error: `Overpayment detected. The remaining due for this installment is ${remainingDue.toFixed(2)}. Please pay this exact amount and apply the rest to the next installment.` 
+      });
+    }
+
+    // Determine new status
+    const newTotalPaid = totalPaidSoFar + paymentAmount;
+    const newStatus = newTotalPaid >= totalDue ? 'PAID' : 'PENDING';
+
+    // 4. Perform Transaction
+    const transactionDate = new Date();
+    
+    const [repayment, updatedSchedule, cashTx] = await prisma.$transaction([
+      // A. Create Repayment
+      prisma.loanRepayment.create({
+        data: {
+          loan_id: loan.id,
+          installment_schedule_id: schedule.id,
+          amount_paid: paymentAmount,
+          payment_date: transactionDate,
+          recorded_by
+        }
+      }),
+      // B. Update Schedule Status
+      prisma.loanInstallmentSchedule.update({
+        where: { id: schedule.id },
+        data: {
+          status: newStatus
+        }
+      }),
+      // C. Create CashTransaction
+      prisma.cashTransaction.create({
+        data: {
+          type: 'CASH_IN',
+          category: 'COLLECTION',
+          amount: paymentAmount,
+          related_loan_id: loan.id,
+          recorded_by,
+          transaction_date: transactionDate
+        }
+      })
+    ]);
+
+    return res.json({
+      message: 'Repayment added successfully.',
+      data: {
+        repayment,
+        installment_status: updatedSchedule.status,
+        total_paid_for_installment: newTotalPaid,
+        total_due: totalDue
+      }
+    });
+  } catch (err) {
+    console.error('Error adding repayment:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+}
+
+module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment };
