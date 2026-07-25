@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
+import toast from 'react-hot-toast';
 
 const ClientForm = () => {
   const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   
   const [formData, setFormData] = useState({
     name: '',
@@ -33,52 +35,80 @@ const ClientForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear field error on typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: null }));
+    }
+    // Also clear general error if any
+    setError(null);
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.nid_number || !formData.phone || !formData.address || !formData.guardian_name || !formData.group_id) {
-      return 'All fields are required.';
-    }
+    const errors = {};
+    
+    if (!formData.name.trim()) errors.name = 'Full name is required';
+    if (!formData.address.trim()) errors.address = 'Address is required';
+    if (!formData.guardian_name.trim()) errors.guardian_name = 'Guardian name is required';
+    if (!formData.group_id) errors.group_id = 'Group is required';
     
     // NID: Only digits, between 10 and 17 characters
-    const nidRegex = /^[0-9]{10,17}$/;
-    if (!nidRegex.test(formData.nid_number)) {
-      return 'NID must contain only numbers and be between 10 and 17 digits.';
+    if (!formData.nid_number) {
+      errors.nid_number = 'NID number is required';
+    } else {
+      const nidRegex = /^[0-9]{10,17}$/;
+      if (!nidRegex.test(formData.nid_number)) {
+        errors.nid_number = 'NID must be 10 to 17 digits';
+      }
     }
 
     // Phone: Basic 11 digits validation (Bangladesh format)
-    const phoneRegex = /^01[3-9]\d{8}$/;
-    if (!phoneRegex.test(formData.phone)) {
-      return 'Phone number must be a valid 11-digit Bangladeshi number starting with 01.';
+    if (!formData.phone) {
+      errors.phone = 'Phone number is required';
+    } else {
+      const phoneRegex = /^01[3-9]\d{8}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        errors.phone = 'Must be a valid 11-digit BD number (e.g. 017...)';
+      }
     }
 
-    return null;
+    return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
     try {
       setSubmitting(true);
       setError(null);
+      setFieldErrors({});
       await axiosClient.post('/clients', formData);
-      // Success redirect
+      toast.success('Client created successfully');
       navigate('/clients', { replace: true });
     } catch (err) {
       console.error('Failed to create client', err);
-      setError(err.response?.data?.error || 'Failed to create client. Please try again.');
+      const backendError = err.response?.data?.error || 'Failed to create client. Please try again.';
+      
+      // Robust mapping of backend errors to fields
+      const lowerError = backendError.toLowerCase();
+      if (lowerError.includes('nid')) {
+        setFieldErrors({ nid_number: backendError });
+      } else if (lowerError.includes('phone')) {
+        setFieldErrors({ phone: backendError });
+      } else {
+        setError(backendError);
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
+    <div className="max-w-2xl mx-auto card card-body">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">Add New Client</h2>
         <Link to="/clients" className="text-sm font-medium text-slate-500 hover:text-slate-700">
@@ -95,77 +125,82 @@ const ClientForm = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-slate-700">Full Name</label>
+            <label htmlFor="name" className="label-text">Full Name</label>
             <input
               type="text"
               name="name"
               id="name"
               value={formData.name}
               onChange={handleChange}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className={`input-field mt-1 ${fieldErrors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
               placeholder="e.g. Rahim Uddin"
             />
+            {fieldErrors.name && <p className="mt-1 text-sm text-red-600">{fieldErrors.name}</p>}
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-slate-700">Phone Number</label>
+            <label htmlFor="phone" className="label-text">Phone Number</label>
             <input
               type="text"
               name="phone"
               id="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className={`input-field mt-1 ${fieldErrors.phone ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
               placeholder="01XXXXXXXXX"
             />
+            {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone}</p>}
           </div>
 
           <div>
-            <label htmlFor="nid_number" className="block text-sm font-medium text-slate-700">NID Number</label>
+            <label htmlFor="nid_number" className="label-text">NID Number</label>
             <input
               type="text"
               name="nid_number"
               id="nid_number"
               value={formData.nid_number}
               onChange={handleChange}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className={`input-field mt-1 ${fieldErrors.nid_number ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
               placeholder="10, 13, or 17 digits"
             />
+            {fieldErrors.nid_number && <p className="mt-1 text-sm text-red-600">{fieldErrors.nid_number}</p>}
           </div>
 
           <div>
-            <label htmlFor="guardian_name" className="block text-sm font-medium text-slate-700">Guardian/Father's Name</label>
+            <label htmlFor="guardian_name" className="label-text">Guardian/Father's Name</label>
             <input
               type="text"
               name="guardian_name"
               id="guardian_name"
               value={formData.guardian_name}
               onChange={handleChange}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className={`input-field mt-1 ${fieldErrors.guardian_name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
             />
+            {fieldErrors.guardian_name && <p className="mt-1 text-sm text-red-600">{fieldErrors.guardian_name}</p>}
           </div>
         </div>
 
         <div>
-          <label htmlFor="address" className="block text-sm font-medium text-slate-700">Address</label>
+          <label htmlFor="address" className="label-text">Address</label>
           <textarea
             name="address"
             id="address"
             rows="3"
             value={formData.address}
             onChange={handleChange}
-            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className={`input-field mt-1 ${fieldErrors.address ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
           ></textarea>
+          {fieldErrors.address && <p className="mt-1 text-sm text-red-600">{fieldErrors.address}</p>}
         </div>
 
         <div>
-          <label htmlFor="group_id" className="block text-sm font-medium text-slate-700">Group</label>
+          <label htmlFor="group_id" className="label-text">Group</label>
           <select
             name="group_id"
             id="group_id"
             value={formData.group_id}
             onChange={handleChange}
-            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white"
+            className={`input-field mt-1 ${fieldErrors.group_id ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
           >
             <option value="">Select a Group...</option>
             {groups.map(group => (
@@ -174,6 +209,7 @@ const ClientForm = () => {
               </option>
             ))}
           </select>
+          {fieldErrors.group_id && <p className="mt-1 text-sm text-red-600">{fieldErrors.group_id}</p>}
           {groups.length === 0 && !error && (
             <p className="mt-2 text-xs text-slate-500">Loading groups or no groups available. Please create a group first.</p>
           )}
@@ -182,17 +218,21 @@ const ClientForm = () => {
         <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
           <Link
             to="/clients"
-            className="px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="btn-secondary"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={submitting}
-            className={`inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-              submitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+            className="btn-primary inline-flex justify-center items-center"
           >
+            {submitting && (
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            )}
             {submitting ? 'Saving...' : 'Save Client'}
           </button>
         </div>

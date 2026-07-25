@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
+import { Plus, Search, Users } from 'lucide-react';
 
 const ClientList = () => {
   const [clients, setClients] = useState([]);
@@ -32,7 +33,7 @@ const ClientList = () => {
   }, [searchTerm]);
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div className="card card-body">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Clients</h2>
@@ -41,11 +42,9 @@ const ClientList = () => {
         <div className="mt-4 sm:mt-0 flex space-x-3">
           <Link
             to="/clients/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="btn-primary inline-flex items-center"
           >
-            <svg className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
+            <Plus className="-ml-1 mr-2 h-5 w-5" />
             Add Client
           </Link>
         </div>
@@ -55,15 +54,13 @@ const ClientList = () => {
         <label htmlFor="search" className="sr-only">Search</label>
         <div className="relative rounded-md shadow-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <Search className="h-5 w-5 text-slate-400" />
           </div>
           <input
             type="text"
             name="search"
             id="search"
-            className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-slate-300 rounded-md py-2 border"
+            className="input-field pl-10"
             placeholder="Search by Name or NID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -78,10 +75,31 @@ const ClientList = () => {
       )}
 
       {loading ? (
-        <div className="animate-pulse flex flex-col space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-slate-200 rounded"></div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Phone</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">NID</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Group</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-200">
+              {[...Array(5)].map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-3/4"></div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-1/2"></div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-1/2"></div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-2/3"></div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="h-6 bg-slate-200 rounded-full w-16"></div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-1/4 ml-auto"></div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -99,8 +117,15 @@ const ClientList = () => {
             <tbody className="bg-white divide-y divide-slate-200">
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
-                    No clients found.
+                  <td colSpan="6" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <Users className="h-12 w-12 text-slate-300 mb-4" />
+                      <h3 className="text-sm font-medium text-slate-900 mb-1">No clients found</h3>
+                      <p className="text-sm text-slate-500 mb-4">Get started by adding a new client.</p>
+                      <Link to="/clients/new" className="btn-secondary inline-flex items-center text-sm">
+                        Add Client
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -118,13 +143,13 @@ const ClientList = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {client.group?.name || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${client.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
+                    <td className="table-cell">
+                      <span className={`badge ${client.status === 'ACTIVE' ? 'badge-disbursed' : 'badge-closed'}`}>
                         {client.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link to={`/clients/${client.id}`} className="text-blue-600 hover:text-blue-900">
+                      <Link to={`/clients/${client.id}`} className="text-primary-600 hover:text-primary-900">
                         View
                       </Link>
                     </td>

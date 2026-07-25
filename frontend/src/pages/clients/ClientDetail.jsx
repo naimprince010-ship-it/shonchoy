@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
+import toast from 'react-hot-toast';
 
 const ClientDetail = () => {
   const { id } = useParams();
@@ -21,10 +22,10 @@ const ClientDetail = () => {
       setLoading(true);
       const [clientRes, txRes] = await Promise.all([
         axiosClient.get(`/clients/${id}`),
-        axiosClient.get(`/savings/${id}/transactions`).catch(() => ({ data: [] })) // Fallback if no savings account yet
+        axiosClient.get(`/savings/${id}/transactions`).catch(() => ({ data: { transactions: [] } })) // Fallback if no savings account yet
       ]);
       setClient(clientRes.data);
-      setTransactions(txRes.data);
+      setTransactions(txRes.data.transactions || []);
       setError(null);
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -49,8 +50,9 @@ const ClientDetail = () => {
     e.preventDefault();
     setSavingsError(null);
 
-    if (!savingsAmount || parseFloat(savingsAmount) <= 0) {
-      setSavingsError('Please enter a valid positive amount.');
+    const amount = parseFloat(savingsAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setSavingsError('Amount must be a positive number greater than 0.');
       return;
     }
 
@@ -58,10 +60,11 @@ const ClientDetail = () => {
       setActionLoading(true);
       const endpoint = savingsAction === 'DEPOSIT' ? '/savings/deposit' : '/savings/withdraw';
       await axiosClient.post(endpoint, {
-        client_id: parseInt(id, 10),
-        amount: parseFloat(savingsAmount)
+        savings_account_id: client.savings_account?.id,
+        amount: amount
       });
       setShowSavingsModal(false);
+      toast.success(`Savings ${savingsAction.toLowerCase()} successful`);
       fetchClientData(); // Refresh balance and transactions
     } catch (err) {
       setSavingsError(err.response?.data?.error || `Failed to process ${savingsAction.toLowerCase()}.`);
@@ -72,11 +75,17 @@ const ClientDetail = () => {
 
   if (loading) {
     return (
-      <div className="animate-pulse p-6">
-        <div className="h-8 bg-slate-200 rounded w-1/4 mb-6"></div>
+      <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="h-8 bg-slate-200 rounded w-8"></div>
+          <div className="h-8 bg-slate-200 rounded w-48"></div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="h-48 bg-slate-200 rounded col-span-1"></div>
-          <div className="h-48 bg-slate-200 rounded col-span-2"></div>
+          <div className="card card-body col-span-1 h-96 bg-slate-50 border-slate-100 border"></div>
+          <div className="col-span-1 md:col-span-2 space-y-6">
+            <div className="card card-body h-32 bg-slate-50 border-slate-100 border"></div>
+            <div className="card h-64 bg-slate-50 border-slate-100 border"></div>
+          </div>
         </div>
       </div>
     );
@@ -107,13 +116,13 @@ const ClientDetail = () => {
           <h2 className="text-2xl font-bold text-slate-900">Client Profile</h2>
         </div>
         <div className="flex items-center space-x-3">
-          <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${client.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
+          <span className={`badge ${client.status === 'ACTIVE' ? 'badge-disbursed' : 'badge-closed'}`}>
             {client.status}
           </span>
           <Link 
             to="/loans/new" 
             state={{ client_id: client.id }}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded shadow hover:bg-blue-700"
+            className="btn-primary"
           >
             Apply for Loan
           </Link>
@@ -122,9 +131,9 @@ const ClientDetail = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Info Card */}
-        <div className="bg-white shadow rounded-lg p-6 col-span-1 h-fit">
+        <div className="card card-body col-span-1 h-fit">
           <div className="flex items-center justify-center mb-6">
-            <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-3xl font-bold uppercase">
+            <div className="h-24 w-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 text-3xl font-bold uppercase">
               {client.name.charAt(0)}
             </div>
           </div>
@@ -158,7 +167,7 @@ const ClientDetail = () => {
         <div className="col-span-1 md:col-span-2 space-y-6">
           
           {/* Savings Summary & Actions */}
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="card card-body">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-medium text-slate-900">Savings Balance</h3>
@@ -185,7 +194,7 @@ const ClientDetail = () => {
           </div>
 
           {/* Savings Transaction History */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="card">
             <div className="px-6 py-5 border-b border-slate-200">
               <h3 className="text-lg font-medium text-slate-900">Savings Transactions</h3>
             </div>
@@ -201,7 +210,14 @@ const ClientDetail = () => {
                 <tbody className="bg-white divide-y divide-slate-200">
                   {transactions.length === 0 ? (
                     <tr>
-                      <td colSpan="3" className="px-6 py-4 text-center text-sm text-slate-500">No transactions yet.</td>
+                      <td colSpan="3" className="px-6 py-8 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <svg className="h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p className="text-sm font-medium text-slate-500">No transactions yet.</p>
+                        </div>
+                      </td>
                     </tr>
                   ) : (
                     transactions.map((tx) => (
@@ -228,7 +244,7 @@ const ClientDetail = () => {
           </div>
 
           {/* Loans History */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="card">
             <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center">
               <h3 className="text-lg font-medium text-slate-900">Loan History</h3>
             </div>
@@ -245,8 +261,14 @@ const ClientDetail = () => {
                 <tbody className="bg-white divide-y divide-slate-200">
                   {!client.loans || client.loans.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
-                        No loans found for this client.
+                      <td colSpan="4" className="px-6 py-10 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <svg className="h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <h3 className="text-sm font-medium text-slate-900 mb-1">No loans found</h3>
+                          <p className="text-sm text-slate-500">This client has no loan history.</p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -262,12 +284,12 @@ const ClientDetail = () => {
                           {loan.term_weeks} Weeks
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            ${loan.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-                            ${loan.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' : ''}
-                            ${loan.status === 'DISBURSED' ? 'bg-indigo-100 text-indigo-800' : ''}
-                            ${loan.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                            ${loan.status === 'CLOSED' ? 'bg-slate-100 text-slate-800' : ''}
+                          <span className={`badge 
+                            ${loan.status === 'PENDING' ? 'badge-pending' : ''}
+                            ${loan.status === 'APPROVED' ? 'badge-approved' : ''}
+                            ${loan.status === 'DISBURSED' ? 'badge-disbursed' : ''}
+                            ${loan.status === 'ACTIVE' ? 'badge-disbursed' : ''}
+                            ${loan.status === 'CLOSED' ? 'badge-closed' : ''}
                           `}>
                             {loan.status}
                           </span>
@@ -285,16 +307,16 @@ const ClientDetail = () => {
 
       {/* Savings Action Modal */}
       {showSavingsModal && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 transition-opacity" aria-hidden="true">
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             
-            <form onSubmit={handleSavingsSubmit} className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+            <form onSubmit={handleSavingsSubmit} className="card relative inline-block text-left transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4 text-center">
                   {savingsAction === 'DEPOSIT' ? 'Deposit Savings' : 'Withdraw Savings'}
                 </h3>
                 
@@ -310,10 +332,12 @@ const ClientDetail = () => {
                     type="number"
                     required
                     step="0.01"
-                    min="1"
                     value={savingsAmount}
-                    onChange={(e) => setSavingsAmount(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onChange={(e) => {
+                      setSavingsAmount(e.target.value);
+                      if (savingsError) setSavingsError(null);
+                    }}
+                    className={`input-field mt-1 ${savingsError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                   />
                   {savingsAction === 'WITHDRAWAL' && (
                     <p className="mt-2 text-xs text-gray-500">
@@ -326,18 +350,24 @@ const ClientDetail = () => {
                 <button 
                   type="submit"
                   disabled={actionLoading}
-                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm ${
+                  className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:ml-3 sm:w-auto ${
                     savingsAction === 'DEPOSIT' 
-                      ? 'bg-emerald-600 hover:bg-emerald-700' 
-                      : 'bg-orange-600 hover:bg-orange-700'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500' 
+                      : 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500'
                   }`}
                 >
+                  {actionLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
                   {actionLoading ? 'Processing...' : `Confirm ${savingsAction === 'DEPOSIT' ? 'Deposit' : 'Withdrawal'}`}
                 </button>
                 <button 
                   type="button"
                   onClick={() => setShowSavingsModal(false)} 
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="btn-secondary mt-3 w-full sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancel
                 </button>

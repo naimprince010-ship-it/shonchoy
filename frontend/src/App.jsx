@@ -13,6 +13,7 @@ import LoanList from './pages/loans/LoanList';
 import LoanForm from './pages/loans/LoanForm';
 import LoanDetail from './pages/loans/LoanDetail';
 import ReportsDashboard from './pages/reports/ReportsDashboard';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="top-right" />
     </AuthProvider>
   );
 }

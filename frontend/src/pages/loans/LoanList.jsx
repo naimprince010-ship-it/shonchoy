@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
+import { Banknote } from 'lucide-react';
 
 const LoanList = () => {
   const [loans, setLoans] = useState([]);
@@ -36,12 +37,12 @@ const LoanList = () => {
   ];
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
+    <div className="card">
       <div className="px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h2 className="text-xl font-bold text-slate-900 mb-4 sm:mb-0">Loan Management</h2>
         <Link
           to="/loans/new"
-          className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          className="btn-primary inline-flex items-center justify-center"
         >
           New Application
         </Link>
@@ -55,7 +56,7 @@ const LoanList = () => {
               onClick={() => setStatusFilter(tab.value)}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                 statusFilter === tab.value
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -73,13 +74,34 @@ const LoanList = () => {
         )}
 
         {loading ? (
-          <div className="animate-pulse flex flex-col space-y-4">
-            <div className="h-10 bg-slate-200 rounded w-full"></div>
-            <div className="h-10 bg-slate-200 rounded w-full"></div>
-            <div className="h-10 bg-slate-200 rounded w-full"></div>
+          <div className="table-container overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Client</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Product</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Principal</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-8"></div></td>
+                    <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-32 mb-2"></div><div className="h-3 bg-slate-200 rounded w-24"></div></td>
+                    <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-24"></div></td>
+                    <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
+                    <td className="px-6 py-4 whitespace-nowrap"><div className="h-6 bg-slate-200 rounded-full w-16"></div></td>
+                    <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-slate-200 rounded w-20 ml-auto"></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-container overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
@@ -94,8 +116,17 @@ const LoanList = () => {
               <tbody className="bg-white divide-y divide-slate-200">
                 {loans.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
-                      No loans found for this status.
+                    <td colSpan="6" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <Banknote className="h-12 w-12 text-slate-300 mb-4" />
+                        <h3 className="text-sm font-medium text-slate-900 mb-1">No loans found</h3>
+                        <p className="text-sm text-slate-500 mb-4">There are no loan applications matching this status.</p>
+                        {statusFilter === '' && (
+                          <Link to="/loans/new" className="btn-secondary inline-flex items-center text-sm">
+                            New Application
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -115,18 +146,18 @@ const LoanList = () => {
                         ৳{loan.principal_amount}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${loan.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-                          ${loan.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' : ''}
-                          ${loan.status === 'DISBURSED' ? 'bg-indigo-100 text-indigo-800' : ''}
-                          ${loan.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                          ${loan.status === 'CLOSED' ? 'bg-slate-100 text-slate-800' : ''}
+                        <span className={`badge 
+                          ${loan.status === 'PENDING' ? 'badge-pending' : ''}
+                          ${loan.status === 'APPROVED' ? 'badge-approved' : ''}
+                          ${loan.status === 'DISBURSED' ? 'badge-disbursed' : ''}
+                          ${loan.status === 'ACTIVE' ? 'badge-disbursed' : ''}
+                          ${loan.status === 'CLOSED' ? 'badge-closed' : ''}
                         `}>
                           {loan.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link to={`/loans/${loan.id}`} className="text-blue-600 hover:text-blue-900">
+                        <Link to={`/loans/${loan.id}`} className="text-primary-600 hover:text-primary-900">
                           View Details
                         </Link>
                       </td>

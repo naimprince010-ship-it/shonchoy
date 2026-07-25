@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
 
 const LoanDetail = () => {
   const { id } = useParams();
@@ -41,6 +42,7 @@ const LoanDetail = () => {
     try {
       setActionLoading(true);
       await axiosClient.put(`/loans/${id}/approve`);
+      toast.success('Loan approved successfully');
       fetchLoanDetail();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to approve loan.');
@@ -54,6 +56,7 @@ const LoanDetail = () => {
       setActionLoading(true);
       await axiosClient.put(`/loans/${id}/disburse`, { disbursement_date: new Date().toISOString() });
       setShowDisburseDialog(false);
+      toast.success('Loan disbursed successfully');
       fetchLoanDetail();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to disburse loan.');
@@ -75,8 +78,9 @@ const LoanDetail = () => {
     e.preventDefault();
     setRepaymentError(null);
     
-    if (!repaymentAmount || parseFloat(repaymentAmount) <= 0) {
-      setRepaymentError('Please enter a valid positive amount.');
+    const amount = parseFloat(repaymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setRepaymentError('Amount must be a positive number greater than 0.');
       return;
     }
 
@@ -84,9 +88,10 @@ const LoanDetail = () => {
       setActionLoading(true);
       await axiosClient.post(`/loans/${id}/repayment`, {
         installment_schedule_id: selectedSchedule.id,
-        amount_paid: repaymentAmount
+        amount_paid: amount
       });
       setShowRepaymentModal(false);
+      toast.success('Payment collected successfully');
       fetchLoanDetail(); // Refresh data
     } catch (err) {
       setRepaymentError(err.response?.data?.error || 'Failed to process repayment.');
@@ -98,7 +103,23 @@ const LoanDetail = () => {
   const canApproveOrDisburse = user?.role === 'ADMIN' || user?.role === 'BRANCH_MANAGER';
 
   if (loading) {
-    return <div className="p-6 animate-pulse">Loading loan details...</div>;
+    return (
+      <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="h-6 bg-slate-200 rounded w-16"></div>
+            <div className="h-8 bg-slate-200 rounded w-32"></div>
+            <div className="h-6 bg-slate-200 rounded-full w-20"></div>
+          </div>
+          <div className="h-10 bg-slate-200 rounded w-32"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="card card-body h-48 bg-slate-50 border border-slate-100"></div>
+          <div className="card card-body h-48 bg-slate-50 border border-slate-100"></div>
+        </div>
+        <div className="card h-64 bg-slate-50 border border-slate-100"></div>
+      </div>
+    );
   }
 
   if (error || !loan) {
@@ -115,11 +136,11 @@ const LoanDetail = () => {
             &larr; Back
           </Link>
           <h2 className="text-2xl font-bold text-slate-900">Loan #{loan.id}</h2>
-          <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
-            ${loan.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-            ${loan.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' : ''}
-            ${loan.status === 'DISBURSED' ? 'bg-indigo-100 text-indigo-800' : ''}
-            ${loan.status === 'CLOSED' ? 'bg-slate-100 text-slate-800' : ''}
+          <span className={`badge 
+            ${loan.status === 'PENDING' ? 'badge-pending' : ''}
+            ${loan.status === 'APPROVED' ? 'badge-approved' : ''}
+            ${loan.status === 'DISBURSED' ? 'badge-disbursed' : ''}
+            ${loan.status === 'CLOSED' ? 'badge-closed' : ''}
           `}>
             {loan.status}
           </span>
@@ -130,8 +151,14 @@ const LoanDetail = () => {
             <button 
               onClick={handleApprove}
               disabled={actionLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary flex items-center"
             >
+              {actionLoading && (
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
               {actionLoading ? 'Processing...' : 'Approve Loan'}
             </button>
           )}
@@ -139,7 +166,7 @@ const LoanDetail = () => {
           {loan.status === 'APPROVED' && canApproveOrDisburse && (
             <button 
               onClick={() => setShowDisburseDialog(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-indigo-700"
+              className="btn-primary"
             >
               Disburse Funds
             </button>
@@ -149,9 +176,9 @@ const LoanDetail = () => {
 
       {/* Main Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="card card-body">
           <h3 className="text-lg font-medium text-slate-900 mb-4 border-b pb-2">Client Details</h3>
-          <dl className="grid grid-cols-2 gap-4">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <dt className="text-sm font-medium text-slate-500">Name</dt>
               <dd className="mt-1 text-sm text-slate-900 font-semibold">{loan.client?.name}</dd>
@@ -167,9 +194,9 @@ const LoanDetail = () => {
           </dl>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="card card-body">
           <h3 className="text-lg font-medium text-slate-900 mb-4 border-b pb-2">Loan Specifications</h3>
-          <dl className="grid grid-cols-2 gap-4">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <dt className="text-sm font-medium text-slate-500">Product</dt>
               <dd className="mt-1 text-sm text-slate-900">{loan.loan_product?.name}</dd>
@@ -192,11 +219,11 @@ const LoanDetail = () => {
 
       {/* Schedule Table */}
       {loan.status === 'DISBURSED' && (
-        <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="card">
           <div className="px-6 py-5 border-b border-slate-200">
             <h3 className="text-lg font-medium text-slate-900">Installment Schedule</h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="table-container overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
@@ -220,8 +247,8 @@ const LoanDetail = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">৳{schedule.total_due}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">৳{paidSoFar.toFixed(2)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${schedule.status === 'PAID' ? 'bg-green-100 text-green-800' : isOverdue ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}
+                        <span className={`badge 
+                          ${schedule.status === 'PAID' ? 'badge-disbursed' : isOverdue ? 'bg-red-100 text-red-800' : 'badge-pending'}
                         `}>
                           {isOverdue ? 'OVERDUE' : schedule.status}
                         </span>
@@ -230,7 +257,7 @@ const LoanDetail = () => {
                         {schedule.status !== 'PAID' && (
                           <button 
                             onClick={() => openRepaymentModal(schedule)}
-                            className="text-blue-600 hover:text-blue-900 font-medium"
+                            className="text-primary-600 hover:text-primary-900 font-medium"
                           >
                             Collect Payment
                           </button>
@@ -247,13 +274,13 @@ const LoanDetail = () => {
 
       {/* Disburse Confirmation Dialog */}
       {showDisburseDialog && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 transition-opacity" aria-hidden="true">
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div className="card relative inline-block text-left transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
@@ -275,13 +302,19 @@ const LoanDetail = () => {
                 <button 
                   onClick={handleDisburse} 
                   disabled={actionLoading}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+                  className="btn-primary flex items-center justify-center w-full sm:w-auto sm:text-sm sm:ml-3"
                 >
+                  {actionLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
                   {actionLoading ? 'Processing...' : 'Confirm Disburse'}
                 </button>
                 <button 
                   onClick={() => setShowDisburseDialog(false)} 
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="btn-secondary w-full sm:w-auto sm:text-sm mt-3 sm:mt-0 sm:ml-3"
                 >
                   Cancel
                 </button>
@@ -293,16 +326,16 @@ const LoanDetail = () => {
 
       {/* Repayment Modal */}
       {showRepaymentModal && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 transition-opacity" aria-hidden="true">
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             
-            <form onSubmit={handleRepaymentSubmit} className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Collect Payment (Week {selectedSchedule?.installment_number})</h3>
+            <form onSubmit={handleRepaymentSubmit} className="card relative inline-block text-left transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4 text-center">Collect Payment (Week {selectedSchedule?.installment_number})</h3>
                 
                 {repaymentError && (
                   <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-3 text-sm text-red-700">
@@ -317,8 +350,11 @@ const LoanDetail = () => {
                     required
                     step="0.01"
                     value={repaymentAmount}
-                    onChange={(e) => setRepaymentAmount(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onChange={(e) => {
+                      setRepaymentAmount(e.target.value);
+                      if (repaymentError) setRepaymentError(null);
+                    }}
+                    className={`input-field mt-1 ${repaymentError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                   />
                   <p className="mt-2 text-xs text-gray-500">
                     Total Due: ৳{selectedSchedule?.total_due}. Overpayments must be handled manually.
@@ -329,14 +365,20 @@ const LoanDetail = () => {
                 <button 
                   type="submit"
                   disabled={actionLoading}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+                  className="btn-primary flex items-center justify-center w-full sm:w-auto sm:text-sm sm:ml-3"
                 >
+                  {actionLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
                   {actionLoading ? 'Processing...' : 'Submit Payment'}
                 </button>
                 <button 
                   type="button"
                   onClick={() => setShowRepaymentModal(false)} 
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="btn-secondary w-full sm:w-auto sm:text-sm mt-3 sm:mt-0 sm:ml-3"
                 >
                   Cancel
                 </button>

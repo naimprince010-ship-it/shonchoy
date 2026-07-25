@@ -53,7 +53,7 @@ const Login = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/40 sm:rounded-2xl sm:px-10 border border-slate-100">
+        <div className="card card-body shadow-xl sm:px-10">
           <form className="space-y-6" onSubmit={handleLogin}>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center">
@@ -65,7 +65,7 @@ const Login = () => {
             )}
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="phone" className="label-text">
                 Phone Number
               </label>
               <div className="mt-1">
@@ -76,14 +76,14 @@ const Login = () => {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                  className="input-field"
                   placeholder="01700000000"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="password" className="label-text">
                 Password
               </label>
               <div className="mt-1">
@@ -94,7 +94,7 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                  className="input-field"
                   placeholder="••••••••"
                 />
               </div>
@@ -104,9 +104,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all ${
-                  isLoading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className="btn-primary w-full flex justify-center py-2.5"
               >
                 {isLoading ? (
                   <span className="flex items-center">

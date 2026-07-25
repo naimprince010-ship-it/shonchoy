@@ -1,1 +1,108 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+  --color-primary-950: #1e1b4b;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@layer components {
+  /* Button Styles */
+  .btn-primary {
+    @apply bg-primary-600 text-white font-medium rounded-lg px-4 py-2 shadow-sm transition-all duration-200 ease-in-out hover:bg-primary-700 hover:shadow active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-slate-700 font-medium rounded-lg px-4 py-2 border border-slate-300 shadow-sm transition-all duration-200 ease-in-out hover:bg-slate-50 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed;
+  }
+  
+  .btn-success {
+    @apply bg-emerald-600 text-white font-medium rounded-lg px-4 py-2 shadow-sm transition-all duration-200 ease-in-out hover:bg-emerald-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 text-white font-medium rounded-lg px-4 py-2 shadow-sm transition-all duration-200 ease-in-out hover:bg-red-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-70 disabled:cursor-not-allowed;
+  }
+
+  /* Form Elements */
+  .input-field {
+    @apply appearance-none block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors bg-white disabled:bg-slate-50 disabled:text-slate-500;
+  }
+
+  .label-text {
+    @apply block text-sm font-medium text-slate-700 mb-1;
+  }
+
+  /* Card Layouts */
+  .card {
+    @apply bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden;
+  }
+  
+  .card-header {
+    @apply px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center;
+  }
+  
+  .card-body {
+    @apply p-6;
+  }
+
+  /* Table Elements */
+  .table-container {
+    @apply bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden;
+  }
+  
+  .table-header-cell {
+    @apply px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200;
+  }
+  
+  .table-row {
+    @apply hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0;
+  }
+  
+  .table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-slate-700;
+  }
+
+  /* Badges */
+  .badge {
+    @apply px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full;
+  }
+  .badge-pending {
+    @apply bg-amber-100 text-amber-800;
+  }
+  .badge-approved {
+    @apply bg-primary-100 text-primary-800;
+  }
+  .badge-disbursed {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+  .badge-closed {
+    @apply bg-slate-100 text-slate-800;
+  }
+  .badge-overdue {
+    @apply bg-red-100 text-red-800;
+  }
+}

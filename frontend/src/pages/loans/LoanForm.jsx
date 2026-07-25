@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
+import toast from 'react-hot-toast';
 
 const LoanForm = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const LoanForm = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Client search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,6 +76,8 @@ const LoanForm = () => {
     setFormData(prev => ({ ...prev, client_id: client.id }));
     setSearchQuery('');
     setSearchResults([]);
+    if (fieldErrors.client_id) setFieldErrors(prev => ({ ...prev, client_id: null }));
+    setError(null);
   };
 
   const handleRemoveClient = () => {
@@ -81,21 +85,61 @@ const LoanForm = () => {
     setFormData(prev => ({ ...prev, client_id: '' }));
   };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: null }));
+    }
+    setError(null);
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.client_id) errors.client_id = 'Please select a client.';
+    if (!formData.loan_product_id) errors.loan_product_id = 'Please select a loan product.';
+    
+    if (!formData.principal_amount) {
+      errors.principal_amount = 'Principal amount is required.';
+    } else {
+      const amount = parseFloat(formData.principal_amount);
+      if (isNaN(amount) || amount <= 0) {
+        errors.principal_amount = 'Amount must be a positive number greater than 0.';
+      }
+    }
+    
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.client_id || !formData.loan_product_id || !formData.principal_amount) {
-      setError('Please fill in all required fields.');
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
     try {
       setSubmitting(true);
       setError(null);
+      setFieldErrors({});
       await axiosClient.post('/loans', formData);
+      toast.success('Loan application submitted successfully');
       navigate('/loans');
     } catch (err) {
       console.error('Submission failed', err);
-      setError(err.response?.data?.error || 'Failed to submit loan application.');
+      const backendError = err.response?.data?.error || 'Failed to submit loan application.';
+      
+      const lowerError = backendError.toLowerCase();
+      if (lowerError.includes('client')) {
+        setFieldErrors({ client_id: backendError });
+      } else if (lowerError.includes('amount')) {
+        setFieldErrors({ principal_amount: backendError });
+      } else if (lowerError.includes('product')) {
+        setFieldErrors({ loan_product_id: backendError });
+      } else {
+        setError(backendError);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +150,7 @@ const LoanForm = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
+    <div className="max-w-2xl mx-auto card card-body">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">New Loan Application</h2>
         <Link to="/loans" className="text-sm font-medium text-slate-500 hover:text-slate-700">
@@ -123,8 +167,8 @@ const LoanForm = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Client Selection Section */}
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <label className="block text-sm font-medium text-slate-700 mb-2">Select Client</label>
+        <div className={`bg-slate-50 p-4 rounded-lg border ${fieldErrors.client_id ? 'border-red-300' : 'border-slate-200'}`}>
+          <label className="label-text mb-2">Select Client</label>
           
           {selectedClient ? (
             <div className="flex items-center justify-between bg-white p-3 border border-blue-200 rounded-md shadow-sm">
@@ -147,7 +191,7 @@ const LoanForm = () => {
                 placeholder="Search by Name or NID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border border-slate-300 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white"
+                className={`input-field ${fieldErrors.client_id ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
               />
               {isSearching && <div className="absolute right-3 top-2.5 text-slate-400 text-sm">Searching...</div>}
               
@@ -167,53 +211,59 @@ const LoanForm = () => {
               )}
             </div>
           )}
+          {fieldErrors.client_id && <p className="mt-1 text-sm text-red-600">{fieldErrors.client_id}</p>}
         </div>
 
         {/* Loan Details Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Loan Product</label>
+            <label className="label-text">Loan Product</label>
             <select
-              required
+              name="loan_product_id"
               value={formData.loan_product_id}
-              onChange={e => setFormData({...formData, loan_product_id: e.target.value})}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white"
+              onChange={handleChange}
+              className={`input-field mt-1 ${fieldErrors.loan_product_id ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
             >
               <option value="">Select a product...</option>
               {products.map(p => (
                 <option key={p.id} value={p.id}>{p.name} ({p.interest_rate * 100}% {p.interest_method})</option>
               ))}
             </select>
+            {fieldErrors.loan_product_id && <p className="mt-1 text-sm text-red-600">{fieldErrors.loan_product_id}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Principal Amount (৳)</label>
+            <label className="label-text">Principal Amount (৳)</label>
             <input
               type="number"
-              required
-              min="1000"
+              name="principal_amount"
               value={formData.principal_amount}
-              onChange={e => setFormData({...formData, principal_amount: e.target.value})}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              onChange={handleChange}
+              className={`input-field mt-1 ${fieldErrors.principal_amount ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
               placeholder="e.g. 15000"
             />
+            {fieldErrors.principal_amount && <p className="mt-1 text-sm text-red-600">{fieldErrors.principal_amount}</p>}
           </div>
         </div>
 
         <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
           <Link
             to="/loans"
-            className="px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50"
+            className="btn-secondary"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={submitting || !selectedClient}
-            className={`inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-              (submitting || !selectedClient) ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className="btn-primary inline-flex justify-center items-center"
           >
+            {submitting && (
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            )}
             {submitting ? 'Submitting...' : 'Submit Application'}
           </button>
         </div>

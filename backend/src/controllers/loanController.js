@@ -131,9 +131,7 @@ async function getAllLoans(req, res) {
 
 async function getLoanProducts(req, res) {
   try {
-    const products = await prisma.loanProduct.findMany({
-      where: { is_active: true }
-    });
+    const products = await prisma.loanProduct.findMany();
     return res.json(products);
   } catch (err) {
     console.error('Error fetching loan products:', err);
