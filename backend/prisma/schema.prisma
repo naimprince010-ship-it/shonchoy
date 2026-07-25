@@ -1,13 +1,227 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  BRANCH_MANAGER
+  FIELD_OFFICER
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String
+  phone         String   @unique
+  email         String?  @unique
+  password_hash String
+  role          Role
+  branch_id     Int?
+  branch        Branch?  @relation(fields: [branch_id], references: [id])
+  created_at    DateTime @default(now())
+
+  // Relations for actions recorded by this user
+  savings_transactions SavingsTransaction[]
+  approved_loans       Loan[]               @relation("LoanApprover")
+  loan_repayments      LoanRepayment[]
+  cash_transactions    CashTransaction[]
+  centers              Center[]             @relation("CenterOfficer")
+}
+
+model Branch {
+  id         Int      @id @default(autoincrement())
+  name       String
+  address    String?
+  created_at DateTime @default(now())
+
+  users   User[]
+  centers Center[]
+}
+
+model Center {
+  id               Int      @id @default(autoincrement())
+  name             String
+  branch_id        Int
+  field_officer_id Int?
+  meeting_day      String   // e.g., "Monday"
+  created_at       DateTime @default(now())
+
+  branch        Branch  @relation(fields: [branch_id], references: [id])
+  field_officer User?   @relation("CenterOfficer", fields: [field_officer_id], references: [id])
+  groups        Group[]
+}
+
+model Group {
+  id         Int      @id @default(autoincrement())
+  name       String
+  center_id  Int
+  created_at DateTime @default(now())
+
+  center  Center   @relation(fields: [center_id], references: [id])
+  clients Client[]
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Client {
+  id            Int          @id @default(autoincrement())
+  name          String
+  nid_number    String       @unique
+  phone         String
+  address       String
+  photo_url     String?
+  guardian_name String
+  group_id      Int
+  join_date     DateTime     @default(now())
+  status        ClientStatus @default(ACTIVE)
+  created_at    DateTime     @default(now())
+
+  group           Group           @relation(fields: [group_id], references: [id])
+  savings_account SavingsAccount?
+  loans           Loan[]
+}
+
+enum AccountType {
+  COMPULSORY
+  VOLUNTARY
+}
+
+model SavingsAccount {
+  id           Int         @id @default(autoincrement())
+  client_id    Int         @unique // 1-1 relationship for MVP
+  account_type AccountType
+  balance      Decimal     @default(0.0) @db.Decimal(12, 2)
+  opened_date  DateTime    @default(now())
+
+  client            Client               @relation(fields: [client_id], references: [id])
+  transactions      SavingsTransaction[]
+  cash_transactions CashTransaction[]
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+model SavingsTransaction {
+  id                 Int             @id @default(autoincrement())
+  savings_account_id Int
+  type               TransactionType
+  amount             Decimal         @db.Decimal(12, 2)
+  transaction_date   DateTime        @default(now())
+  recorded_by        Int
+
+  savings_account SavingsAccount @relation(fields: [savings_account_id], references: [id])
+  user            User           @relation(fields: [recorded_by], references: [id])
+}
+
+enum InterestMethod {
+  FLAT
+  REDUCING
+}
+
+model LoanProduct {
+  id                 Int            @id @default(autoincrement())
+  name               String
+  interest_rate      Float
+  interest_method    InterestMethod
+  default_term_weeks Int
+
+  loans Loan[]
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  CLOSED
+  DEFAULTED
+}
+
+model Loan {
+  id                Int        @id @default(autoincrement())
+  client_id         Int
+  loan_product_id   Int
+  principal_amount  Decimal    @db.Decimal(12, 2)
+  interest_rate     Float
+  interest_method   InterestMethod
+  term_weeks        Int
+  disbursement_date DateTime?
+  status            LoanStatus @default(PENDING)
+  approved_by       Int?
+  created_at        DateTime   @default(now())
+
+  client            Client                    @relation(fields: [client_id], references: [id])
+  loan_product      LoanProduct               @relation(fields: [loan_product_id], references: [id])
+  approver          User?                     @relation("LoanApprover", fields: [approved_by], references: [id])
+  schedules         LoanInstallmentSchedule[]
+  repayments        LoanRepayment[]
+  cash_transactions CashTransaction[]
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model LoanInstallmentSchedule {
+  id                 Int               @id @default(autoincrement())
+  loan_id            Int
+  installment_number Int
+  due_date           DateTime
+  principal_due      Decimal           @db.Decimal(12, 2)
+  interest_due       Decimal           @db.Decimal(12, 2)
+  total_due          Decimal           @db.Decimal(12, 2)
+  status             InstallmentStatus @default(PENDING)
+
+  loan       Loan            @relation(fields: [loan_id], references: [id])
+  repayments LoanRepayment[]
+}
+
+model LoanRepayment {
+  id                      Int      @id @default(autoincrement())
+  loan_id                 Int
+  installment_schedule_id Int
+  amount_paid             Decimal  @db.Decimal(12, 2)
+  payment_date            DateTime @default(now())
+  recorded_by             Int
+
+  loan                 Loan                    @relation(fields: [loan_id], references: [id])
+  installment_schedule LoanInstallmentSchedule @relation(fields: [installment_schedule_id], references: [id])
+  user                 User                    @relation(fields: [recorded_by], references: [id])
+}
+
+enum CashTransactionType {
+  CASH_IN
+  CASH_OUT
+}
+
+enum CashTransactionCategory {
+  DISBURSEMENT
+  COLLECTION
+  SAVINGS_DEPOSIT
+  SAVINGS_WITHDRAWAL
+  EXPENSE
+}
+
+model CashTransaction {
+  id                 Int                     @id @default(autoincrement())
+  type               CashTransactionType
+  category           CashTransactionCategory
+  amount             Decimal                 @db.Decimal(12, 2)
+  related_loan_id    Int?
+  related_savings_id Int?
+  transaction_date   DateTime                @default(now())
+  recorded_by        Int
+
+  loan            Loan?           @relation(fields: [related_loan_id], references: [id])
+  savings_account SavingsAccount? @relation(fields: [related_savings_id], references: [id])
+  user            User            @relation(fields: [recorded_by], references: [id])
 }
