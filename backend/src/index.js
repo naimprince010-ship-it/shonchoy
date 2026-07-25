@@ -1,3 +1,4 @@
+process.env.TZ = 'Asia/Dhaka';
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();

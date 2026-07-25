@@ -160,7 +160,7 @@ async function getDailyCollection(req, res) {
 
     return res.json({
       data: {
-        date: startOfDay.toISOString().split('T')[0],
+        date: startOfDay.toLocaleDateString('en-CA'),
         total_collection: dailyTotal,
         repayments: formattedData
       }
