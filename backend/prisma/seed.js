@@ -32,23 +32,48 @@ async function main() {
   });
   console.log('Admin user created:', admin.name, '| Phone:', admin.phone);
 
+  // Create FIELD_OFFICER user
+  const officerPassword = await hashPassword('officer123');
+  const officer = await prisma.user.upsert({
+    where: { phone: '01700000001' },
+    update: {},
+    create: {
+      name: 'Field Officer 1',
+      phone: '01700000001',
+      email: 'officer@mfi.local',
+      password_hash: officerPassword,
+      role: 'FIELD_OFFICER',
+      branch_id: branch.id,
+    },
+  });
+  console.log('Field Officer created:', officer.name, '| Phone:', officer.phone);
+
   // Create a default LoanProduct for testing later
   const loanProduct = await prisma.loanProduct.upsert({
     where: { id: 1 },
-    update: {},
-    create: {
-      name: 'সাধারণ ক্ষুদ্রঋণ',
-      interest_rate: 12.5,
+    update: {
+      name: 'Standard Weekly Loan',
+      interest_rate: 10.0,
       interest_method: 'FLAT',
-      default_term_weeks: 46,
+      default_term_weeks: 52,
+    },
+    create: {
+      name: 'Standard Weekly Loan',
+      interest_rate: 10.0,
+      interest_method: 'FLAT',
+      default_term_weeks: 52,
     },
   });
   console.log('Loan product created:', loanProduct.name);
 
   console.log('\n--- Seed Complete ---');
   console.log('Login credentials:');
+  console.log('  [ADMIN]');
   console.log('  Phone: 01700000000');
-  console.log('  Password: admin123');
+  console.log('  Password: admin123\n');
+  console.log('  [FIELD_OFFICER]');
+  console.log('  Phone: 01700000001');
+  console.log('  Password: officer123');
 }
 
 main()
