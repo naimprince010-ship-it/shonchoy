@@ -12,6 +12,7 @@ import GroupManagement from './pages/groups/GroupManagement';
 import LoanList from './pages/loans/LoanList';
 import LoanForm from './pages/loans/LoanForm';
 import LoanDetail from './pages/loans/LoanDetail';
+import ReportsDashboard from './pages/reports/ReportsDashboard';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
               <Route path="/loans" element={<LoanList />} />
               <Route path="/loans/new" element={<LoanForm />} />
               <Route path="/loans/:id" element={<LoanDetail />} />
+              <Route path="/reports" element={<ReportsDashboard />} />
               {/* Future protected routes go here */}
             </Route>
           </Route>
