@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import ClientList from './pages/clients/ClientList';
 import ClientForm from './pages/clients/ClientForm';
 import ClientDetail from './pages/clients/ClientDetail';
+import GroupManagement from './pages/groups/GroupManagement';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
               <Route path="/clients" element={<ClientList />} />
               <Route path="/clients/new" element={<ClientForm />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
+              <Route path="/groups" element={<GroupManagement />} />
               {/* Future protected routes go here */}
             </Route>
           </Route>
