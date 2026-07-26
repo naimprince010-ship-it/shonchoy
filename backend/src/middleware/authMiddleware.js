@@ -2,12 +2,14 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const prisma = require('../utils/prisma');
+
 /**
  * JWT verification middleware
  * Expects header: Authorization: Bearer <token>
  * Sets req.user = { id, role } on success
  */
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,8 +23,6 @@ function authMiddleware(req, res, next) {
     req.user = { id: decoded.id, role: decoded.role, name: decoded.name };
 
     if (!req.user.name) {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
       const user = await prisma.user.findUnique({ where: { id: req.user.id } });
       if (user) req.user.name = user.name;
     }
