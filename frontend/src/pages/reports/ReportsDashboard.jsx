@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axiosClient from '../../api/axiosClient';
-import { Banknote } from 'lucide-react';
+import { Banknote, Download } from 'lucide-react';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const ReportsDashboard = () => {
   const [activeTab, setActiveTab] = useState('portfolio'); // 'portfolio' or 'daily'
@@ -54,6 +55,68 @@ const ReportsDashboard = () => {
     }
   }, [activeTab, dailyDate]);
 
+  const handleExportPortfolioExcel = () => {
+    if (!portfolioData) return;
+    const dataToExport = [
+      { Metric: 'Active Clients', Value: portfolioData.active_clients },
+      { Metric: 'Disbursed Loans (Count)', Value: portfolioData.disbursed_loans_count },
+      { Metric: 'Total Disbursed Amount', Value: portfolioData.disbursed_loans_amount },
+      { Metric: 'Total Outstanding', Value: portfolioData.total_outstanding },
+      { Metric: 'Total Collected', Value: portfolioData.total_collected },
+      { Metric: 'Portfolio at Risk (PAR) %', Value: portfolioData.par_percentage },
+      { Metric: 'Total Overdue Amount', Value: portfolioData.total_overdue_amount },
+      { Metric: 'Total Written Off', Value: portfolioData.total_written_off || 0 }
+    ];
+    exportToExcel(dataToExport, 'Portfolio_Summary');
+  };
+
+  const handleExportPortfolioPDF = () => {
+    if (!portfolioData) return;
+    const columns = [
+      { header: 'Metric', dataKey: 'Metric' },
+      { header: 'Value', dataKey: 'Value' }
+    ];
+    const data = [
+      { Metric: 'Active Clients', Value: portfolioData.active_clients },
+      { Metric: 'Disbursed Loans (Count)', Value: portfolioData.disbursed_loans_count },
+      { Metric: 'Total Disbursed Amount', Value: `BDT ${portfolioData.disbursed_loans_amount}` },
+      { Metric: 'Total Outstanding', Value: `BDT ${portfolioData.total_outstanding}` },
+      { Metric: 'Total Collected', Value: `BDT ${portfolioData.total_collected}` },
+      { Metric: 'Portfolio at Risk (PAR) %', Value: `${portfolioData.par_percentage}%` },
+      { Metric: 'Total Overdue Amount', Value: `BDT ${portfolioData.total_overdue_amount}` },
+      { Metric: 'Total Written Off', Value: `BDT ${portfolioData.total_written_off || 0}` }
+    ];
+    exportToPDF('Portfolio Summary', columns, data, 'Portfolio_Summary');
+  };
+
+  const handleExportDailyExcel = () => {
+    if (!dailyData || dailyData.repayments.length === 0) return;
+    const dataToExport = dailyData.repayments.map(rep => ({
+      Time: new Date(rep.payment_date).toLocaleTimeString(),
+      Client: rep.client_name,
+      'Loan Reference': `Loan #${rep.loan_id}`,
+      'Amount Paid': rep.amount_paid
+    }));
+    exportToExcel(dataToExport, `Daily_Collection_${dailyData.date}`);
+  };
+
+  const handleExportDailyPDF = () => {
+    if (!dailyData || dailyData.repayments.length === 0) return;
+    const columns = [
+      { header: 'Time', dataKey: 'time' },
+      { header: 'Client', dataKey: 'client' },
+      { header: 'Loan Reference', dataKey: 'loan' },
+      { header: 'Amount Paid', dataKey: 'amount' }
+    ];
+    const data = dailyData.repayments.map(rep => ({
+      time: new Date(rep.payment_date).toLocaleTimeString(),
+      client: rep.client_name,
+      loan: `Loan #${rep.loan_id}`,
+      amount: `BDT ${rep.amount_paid}`
+    }));
+    exportToPDF(`Daily Collection - ${new Date(dailyData.date).toLocaleDateString()}`, columns, data, `Daily_Collection_${dailyData.date}`);
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -100,6 +163,24 @@ const ReportsDashboard = () => {
       {/* Portfolio Summary Tab */}
       {activeTab === 'portfolio' && (
         <div>
+          <div className="flex justify-end space-x-3 mb-4">
+            <button
+              onClick={handleExportPortfolioExcel}
+              className="btn-secondary inline-flex items-center text-sm"
+              disabled={!portfolioData}
+            >
+              <Download className="-ml-1 mr-2 h-4 w-4" />
+              Export Excel
+            </button>
+            <button
+              onClick={handleExportPortfolioPDF}
+              className="btn-secondary inline-flex items-center text-sm"
+              disabled={!portfolioData}
+            >
+              <Download className="-ml-1 mr-2 h-4 w-4" />
+              Export PDF
+            </button>
+          </div>
           {portfolioError && (
             <div className="bg-red-50 border-l-4 border-red-400 p-4 text-red-700 mb-6">
               {portfolioError}
@@ -173,9 +254,30 @@ const ReportsDashboard = () => {
           ) : dailyData && (
             <div className="space-y-6">
               {/* Daily Summary */}
-              <div className="card card-body inline-block border-l-4 border-emerald-500">
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Total Collection for {new Date(dailyData.date).toLocaleDateString()}</h3>
-                <div className="text-4xl font-bold text-emerald-600">৳{dailyData.total_collection}</div>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="card card-body inline-block border-l-4 border-emerald-500">
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Total Collection for {new Date(dailyData.date).toLocaleDateString()}</h3>
+                  <div className="text-4xl font-bold text-emerald-600">৳{dailyData.total_collection}</div>
+                </div>
+                
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleExportDailyExcel}
+                    className="btn-secondary inline-flex items-center text-sm"
+                    disabled={dailyData.repayments.length === 0}
+                  >
+                    <Download className="-ml-1 mr-2 h-4 w-4" />
+                    Export Excel
+                  </button>
+                  <button
+                    onClick={handleExportDailyPDF}
+                    className="btn-secondary inline-flex items-center text-sm"
+                    disabled={dailyData.repayments.length === 0}
+                  >
+                    <Download className="-ml-1 mr-2 h-4 w-4" />
+                    Export PDF
+                  </button>
+                </div>
               </div>
 
               {/* Transactions Table */}

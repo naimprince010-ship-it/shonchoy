@@ -201,4 +201,86 @@ async function getDailyCollection(req, res) {
   }
 }
 
-module.exports = { getPortfolioSummary, getDailyCollection };
+async function getMonthlyTrend(req, res) {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    
+    // We want the last 6 months including the current month
+    const monthsData = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthLabel = d.toLocaleString('default', { month: 'short' });
+      monthsData.push({
+        label: monthLabel,
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        start: new Date(d.getFullYear(), d.getMonth(), 1),
+        end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999),
+        disbursed: 0,
+        collected: 0
+      });
+    }
+
+    const loanFilter = await buildRoleFilter(userId, userRole, 'loan');
+    const repaymentFilter = await buildRoleFilter(userId, userRole, 'repayment');
+
+    const sixMonthsAgo = monthsData[0].start;
+
+    // Fetch loans in last 6 months
+    const loans = await prisma.loan.findMany({
+      where: {
+        ...loanFilter,
+        status: { in: ['DISBURSED', 'CLOSED', 'DEFAULTED'] },
+        disbursement_date: { gte: sixMonthsAgo }
+      },
+      select: { disbursement_date: true, principal_amount: true }
+    });
+
+    // Fetch repayments in last 6 months
+    const repayments = await prisma.loanRepayment.findMany({
+      where: {
+        ...repaymentFilter,
+        payment_date: { gte: sixMonthsAgo }
+      },
+      select: { payment_date: true, amount_paid: true }
+    });
+
+    // Aggregate in memory
+    for (const loan of loans) {
+      if (!loan.disbursement_date) continue;
+      const m = loan.disbursement_date.getMonth();
+      const y = loan.disbursement_date.getFullYear();
+      const bucket = monthsData.find(b => b.month === m && b.year === y);
+      if (bucket) {
+        bucket.disbursed += parseFloat(loan.principal_amount || 0);
+      }
+    }
+
+    for (const rep of repayments) {
+      if (!rep.payment_date) continue;
+      const m = rep.payment_date.getMonth();
+      const y = rep.payment_date.getFullYear();
+      const bucket = monthsData.find(b => b.month === m && b.year === y);
+      if (bucket) {
+        bucket.collected += parseFloat(rep.amount_paid || 0);
+      }
+    }
+
+    // Format output
+    const formattedData = monthsData.map(b => ({
+      name: b.label,
+      Disbursed: parseFloat(b.disbursed.toFixed(2)),
+      Collected: parseFloat(b.collected.toFixed(2))
+    }));
+
+    return res.json({ data: formattedData });
+  } catch (err) {
+    console.error('Error fetching monthly trend:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+}
+
+module.exports = { getPortfolioSummary, getDailyCollection, getMonthlyTrend };

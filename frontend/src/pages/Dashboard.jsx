@@ -1,28 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 import { AlertCircle, Users, CreditCard, Wallet, Banknote, AlertTriangle, Activity } from 'lucide-react';
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const [summary, setSummary] = useState(null);
+  const [trendData, setTrendData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchSummary = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const response = await axiosClient.get('/reports/portfolio-summary');
-        setSummary(response.data.data);
+        const [summaryRes, trendRes] = await Promise.all([
+          axiosClient.get('/reports/portfolio-summary'),
+          axiosClient.get('/reports/monthly-trend')
+        ]);
+        setSummary(summaryRes.data.data);
+        setTrendData(trendRes.data.data);
         setError(null);
       } catch (err) {
-        console.error('Failed to fetch portfolio summary:', err);
+        console.error('Failed to fetch dashboard data:', err);
         setError('Unable to load dashboard data. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSummary();
+    fetchDashboardData();
   }, []);
 
   return (
@@ -192,6 +198,37 @@ const Dashboard = () => {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {summary && trendData && trendData.length > 0 && (
+        <div className="mt-8 mb-4">
+          <h3 className="text-xl font-bold text-slate-900 mb-4">Monthly Trend (Last 6 Months)</h3>
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm" style={{ height: '400px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={trendData}
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+              >
+                <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="#64748b" />
+                <YAxis stroke="#64748b" 
+                  tickFormatter={(value) => 
+                    value >= 1000000 ? `${(value / 1000000).toFixed(1)}M` : 
+                    value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value
+                  } 
+                />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ fontWeight: 500 }}
+                  formatter={(value) => `৳${value.toLocaleString()}`}
+                />
+                <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                <Bar dataKey="Disbursed" barSize={32} fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Line type="monotone" dataKey="Collected" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </>

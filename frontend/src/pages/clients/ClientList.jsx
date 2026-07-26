@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
-import { Plus, Search, Users } from 'lucide-react';
+import { Plus, Search, Users, Download } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const ClientList = () => {
+  const { user } = useAuth();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,6 +35,38 @@ const ClientList = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
+  const handleExportExcel = () => {
+    const dataToExport = clients.map(c => ({
+      ID: c.id,
+      Name: c.name,
+      Phone: c.phone,
+      'NID Number': c.nid_number,
+      Group: c.group?.name || 'N/A',
+      Status: c.status
+    }));
+    exportToExcel(dataToExport, 'Client_List');
+  };
+
+  const handleExportPDF = () => {
+    const columns = [
+      { header: 'ID', dataKey: 'id' },
+      { header: 'Name', dataKey: 'name' },
+      { header: 'Phone', dataKey: 'phone' },
+      { header: 'NID Number', dataKey: 'nid' },
+      { header: 'Group', dataKey: 'group' },
+      { header: 'Status', dataKey: 'status' }
+    ];
+    const data = clients.map(c => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      nid: c.nid_number,
+      group: c.group?.name || 'N/A',
+      status: c.status
+    }));
+    exportToPDF('Client List', columns, data, 'Client_List');
+  };
+
   return (
     <div className="card card-body">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
@@ -40,6 +75,26 @@ const ClientList = () => {
           <p className="mt-1 text-sm text-slate-500">Manage all registered clients.</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
+          {(user?.role === 'ADMIN' || user?.role === 'BRANCH_MANAGER') && (
+            <>
+              <button
+                onClick={handleExportExcel}
+                className="btn-secondary inline-flex items-center"
+                disabled={clients.length === 0}
+              >
+                <Download className="-ml-1 mr-2 h-4 w-4" />
+                Excel
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="btn-secondary inline-flex items-center"
+                disabled={clients.length === 0}
+              >
+                <Download className="-ml-1 mr-2 h-4 w-4" />
+                PDF
+              </button>
+            </>
+          )}
           <Link
             to="/clients/new"
             className="btn-primary inline-flex items-center"
