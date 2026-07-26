@@ -227,3 +227,11 @@ model CashTransaction {
   savings_account SavingsAccount? @relation(fields: [related_savings_id], references: [id])
   user            User            @relation(fields: [recorded_by], references: [id])
 }
+
+model SystemSetting {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique
+  value      String
+  updated_at DateTime @default(now()) @updatedAt
+}
+
