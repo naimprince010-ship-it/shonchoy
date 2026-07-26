@@ -28,6 +28,7 @@ model User {
   // Relations for actions recorded by this user
   savings_transactions SavingsTransaction[]
   approved_loans       Loan[]               @relation("LoanApprover")
+  written_off_loans    Loan[]               @relation("LoanWriteOff")
   loan_repayments      LoanRepayment[]
   cash_transactions    CashTransaction[]
   centers              Center[]             @relation("CenterOfficer")
@@ -157,11 +158,15 @@ model Loan {
   disbursement_date DateTime?
   status            LoanStatus @default(PENDING)
   approved_by       Int?
+  writeoff_reason   String?
+  writeoff_date     DateTime?
+  writeoff_by       Int?
   created_at        DateTime   @default(now())
 
   client            Client                    @relation(fields: [client_id], references: [id])
   loan_product      LoanProduct               @relation(fields: [loan_product_id], references: [id])
   approver          User?                     @relation("LoanApprover", fields: [approved_by], references: [id])
+  writeoff_user     User?                     @relation("LoanWriteOff", fields: [writeoff_by], references: [id])
   schedules         LoanInstallmentSchedule[]
   repayments        LoanRepayment[]
   cash_transactions CashTransaction[]

@@ -174,6 +174,24 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Total Written Off */}
+          <div className="card hover:shadow-md transition-shadow relative group">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-slate-100 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-in-out"></div>
+            <div className="card-body relative z-10">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-slate-200 rounded-lg p-3">
+                  <AlertCircle className="h-6 w-6 text-slate-700" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-slate-500 truncate">Total Written Off</dt>
+                    <dd className="text-2xl font-bold text-slate-700 mt-1">৳{summary.total_written_off ? summary.total_written_off.toLocaleString() : '0'}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
     </>

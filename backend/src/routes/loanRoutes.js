@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans, getAllLoans } = require('../controllers/loanController');
+const { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans, getAllLoans, writeOffLoan } = require('../controllers/loanController');
 const { roleMiddleware } = require('../middleware/authMiddleware');
 
 // GET /api/loans - List all loans
@@ -23,5 +23,8 @@ router.put('/:id/disburse', roleMiddleware('ADMIN', 'BRANCH_MANAGER'), disburseL
 
 // POST /api/loans/:id/repayment - Add repayment (Accessible by any authenticated user, e.g. FIELD_OFFICER)
 router.post('/:id/repayment', addRepayment);
+
+// PUT /api/loans/:id/writeoff - Write-off a loan (Restricted to ADMIN)
+router.put('/:id/writeoff', roleMiddleware('ADMIN'), writeOffLoan);
 
 module.exports = router;

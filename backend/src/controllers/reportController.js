@@ -38,11 +38,14 @@ async function getPortfolioSummary(req, res) {
     const totalDisbursedAmount = disbursedLoansAggr._sum.principal_amount ? parseFloat(disbursedLoansAggr._sum.principal_amount) : 0;
 
     // 3. Outstanding Calculation
-    // We need all PENDING schedules
+    // We need all PENDING schedules, but ONLY for loans that are NOT DEFAULTED
     const pendingSchedules = await prisma.loanInstallmentSchedule.findMany({
       where: {
         ...scheduleFilter,
-        status: 'PENDING'
+        status: 'PENDING',
+        loan: {
+          status: { not: 'DEFAULTED' }
+        }
       },
       include: {
         repayments: true
@@ -87,6 +90,31 @@ async function getPortfolioSummary(req, res) {
       par = (totalOverdueAmount / totalOutstanding) * 100;
     }
 
+    // 6. Total Written Off
+    // Sum of all pending schedules (unpaid principal + interest) for DEFAULTED loans
+    const defaultedSchedules = await prisma.loanInstallmentSchedule.findMany({
+      where: {
+        ...scheduleFilter,
+        status: 'PENDING',
+        loan: {
+          status: 'DEFAULTED'
+        }
+      },
+      include: {
+        repayments: true
+      }
+    });
+
+    let totalWrittenOff = 0;
+    for (const schedule of defaultedSchedules) {
+      const totalDue = parseFloat(schedule.total_due);
+      let paidSoFar = 0;
+      for (const rep of schedule.repayments) {
+        paidSoFar += parseFloat(rep.amount_paid);
+      }
+      totalWrittenOff += (totalDue - paidSoFar);
+    }
+
     return res.json({
       data: {
         active_clients: activeClients,
@@ -96,7 +124,8 @@ async function getPortfolioSummary(req, res) {
         total_collected: parseFloat(totalCollected.toFixed(2)),
         total_overdue_amount: parseFloat(totalOverdueAmount.toFixed(2)),
         total_overdue_count: overdueCount,
-        par_percentage: parseFloat(par.toFixed(2))
+        par_percentage: parseFloat(par.toFixed(2)),
+        total_written_off: parseFloat(totalWrittenOff.toFixed(2))
       }
     });
   } catch (err) {

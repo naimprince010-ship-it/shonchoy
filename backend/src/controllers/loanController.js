@@ -444,4 +444,55 @@ async function getOverdueLoans(req, res) {
   }
 }
 
-module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans, getAllLoans, getLoanProducts };
+/**
+ * PUT /api/loans/:id/writeoff
+ * Body: { reason }
+ */
+async function writeOffLoan(req, res) {
+  try {
+    const loanId = parseInt(req.params.id, 10);
+    const { reason } = req.body;
+    
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({ error: 'A valid reason (at least 5 characters) is required for write-off.' });
+    }
+
+    // Must be admin, though route middleware already checks this
+    if (req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only admins can write-off loans.' });
+    }
+
+    const loan = await prisma.loan.findUnique({
+      where: { id: loanId }
+    });
+
+    if (!loan) return res.status(404).json({ error: 'Loan not found.' });
+
+    if (loan.status !== 'DISBURSED') {
+      return res.status(400).json({ error: 'Only DISBURSED loans can be written off.' });
+    }
+
+    // Execute atomic write-off
+    const updatedLoan = await prisma.loan.update({
+      where: { id: loanId },
+      data: {
+        status: 'DEFAULTED',
+        writeoff_reason: reason.trim(),
+        writeoff_date: new Date(),
+        writeoff_by: req.user.id
+      }
+    });
+
+    await logActivity(req.user.id, req.user.name, 'LOAN_WRITTEN_OFF', 'Loan', loan.id, {
+      reason: reason.trim(),
+      principal_amount: parseFloat(loan.principal_amount)
+    });
+
+    return res.json({ message: 'Loan has been written off successfully.', data: updatedLoan });
+  } catch (err) {
+    console.error('Error writing off loan:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+}
+
+module.exports = { createLoanApplication, approveLoan, getLoanById, disburseLoan, addRepayment, getOverdueLoans, writeOffLoan, getAllLoans, getLoanProducts };
