@@ -19,6 +19,11 @@ function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = { id: decoded.id, role: decoded.role };
+
+    if (req.user.role === 'DEMO' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      return res.status(403).json({ error: 'Demo accounts are read-only' });
+    }
+
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token.' });

@@ -66,6 +66,22 @@ async function main() {
   });
   console.log('Loan product created:', loanProduct.name);
 
+  // Create default DEMO user
+  const demoPassword = await hashPassword('demo123');
+  const demo = await prisma.user.upsert({
+    where: { phone: '01700000099' },
+    update: {},
+    create: {
+      name: 'Demo Account',
+      phone: '01700000099',
+      email: 'demo@mfi.local',
+      password_hash: demoPassword,
+      role: 'DEMO',
+      branch_id: branch.id,
+    },
+  });
+  console.log('User created:', demo.name);
+
   console.log('\n--- Seed Complete ---');
   console.log('Login credentials:');
   console.log('  [ADMIN]');
@@ -73,7 +89,10 @@ async function main() {
   console.log('  Password: admin123\n');
   console.log('  [FIELD_OFFICER]');
   console.log('  Phone: 01700000001');
-  console.log('  Password: officer123');
+  console.log('  Password: officer123\n');
+  console.log('  [DEMO]');
+  console.log('  Phone: 01700000099');
+  console.log('  Password: demo123');
 }
 
 main()

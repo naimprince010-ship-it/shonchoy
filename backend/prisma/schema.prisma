@@ -10,6 +10,7 @@ enum Role {
   ADMIN
   BRANCH_MANAGER
   FIELD_OFFICER
+  DEMO
 }
 
 model User {
