@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings } from 'lucide-react';
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -21,6 +21,10 @@ const Layout = () => {
     { name: 'Savings', path: '/savings', icon: <PiggyBank className="w-5 h-5 mr-3" /> },
     { name: 'Reports', path: '/reports', icon: <PieChart className="w-5 h-5 mr-3" /> },
   ];
+
+  if (user?.role === 'ADMIN') {
+    navItems.push({ name: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5 mr-3" /> });
+  }
 
   const location = useLocation();
 

@@ -17,6 +17,12 @@ const ClientDetail = () => {
   const [savingsError, setSavingsError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // SMS Modal State
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [smsMessage, setSmsMessage] = useState('');
+  const [smsError, setSmsError] = useState(null);
+  const [smsLoading, setSmsLoading] = useState(false);
+
   const fetchClientData = async () => {
     try {
       setLoading(true);
@@ -73,6 +79,33 @@ const ClientDetail = () => {
     }
   };
 
+  const handleSendSms = async (e) => {
+    e.preventDefault();
+    setSmsError(null);
+    if (!smsMessage.trim()) {
+      setSmsError('Message cannot be empty.');
+      return;
+    }
+
+    try {
+      setSmsLoading(true);
+      const res = await axiosClient.post('/sms/send-manual', {
+        client_id: client.id,
+        message: smsMessage
+      });
+      setShowSmsModal(false);
+      setSmsMessage('');
+      toast.success(res.data.message || 'SMS sent successfully');
+    } catch (err) {
+      setSmsError(err.response?.data?.message || 'Failed to send SMS.');
+      if (err.response?.status === 400 && err.response?.data?.message.includes('disabled')) {
+        toast.error('SMS is currently disabled system-wide');
+      }
+    } finally {
+      setSmsLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
@@ -119,6 +152,19 @@ const ClientDetail = () => {
           <span className={`badge ${client.status === 'ACTIVE' ? 'badge-disbursed' : 'badge-closed'}`}>
             {client.status}
           </span>
+          <button 
+            onClick={() => {
+              setSmsMessage('');
+              setSmsError(null);
+              setShowSmsModal(true);
+            }}
+            className="btn-secondary flex items-center"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            Send SMS
+          </button>
           <Link 
             to="/loans/new" 
             state={{ client_id: client.id }}
@@ -367,6 +413,69 @@ const ClientDetail = () => {
                 <button 
                   type="button"
                   onClick={() => setShowSavingsModal(false)} 
+                  className="btn-secondary mt-3 w-full sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SMS Send Modal */}
+      {showSmsModal && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <form onSubmit={handleSendSms} className="card relative inline-block text-left transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4 text-center">
+                  Send SMS to {client.name}
+                </h3>
+                
+                {smsError && (
+                  <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-3 text-sm text-red-700">
+                    {smsError}
+                  </div>
+                )}
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={smsMessage}
+                    onChange={(e) => {
+                      setSmsMessage(e.target.value);
+                      if (smsError) setSmsError(null);
+                    }}
+                    placeholder="Type your message here..."
+                    className={`input-field w-full ${smsError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                  ></textarea>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button 
+                  type="submit"
+                  disabled={smsLoading}
+                  className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:ml-3 sm:w-auto bg-blue-600 hover:bg-blue-700 focus:ring-blue-500`}
+                >
+                  {smsLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {smsLoading ? 'Sending...' : 'Send SMS'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowSmsModal(false)} 
                   className="btn-secondary mt-3 w-full sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancel

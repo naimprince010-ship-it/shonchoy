@@ -82,6 +82,17 @@ async function main() {
   });
   console.log('User created:', demo.name);
 
+  // Seed default SMS_ENABLED setting
+  const smsSetting = await prisma.systemSetting.upsert({
+    where: { key: 'SMS_ENABLED' },
+    update: {},
+    create: {
+      key: 'SMS_ENABLED',
+      value: 'true',
+    },
+  });
+  console.log(`System Setting created: ${smsSetting.key} = ${smsSetting.value}`);
+
   console.log('\n--- Seed Complete ---');
   console.log('Login credentials:');
   console.log('  [ADMIN]');

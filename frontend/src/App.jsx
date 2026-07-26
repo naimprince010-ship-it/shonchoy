@@ -13,6 +13,7 @@ import LoanList from './pages/loans/LoanList';
 import LoanForm from './pages/loans/LoanForm';
 import LoanDetail from './pages/loans/LoanDetail';
 import ReportsDashboard from './pages/reports/ReportsDashboard';
+import Settings from './pages/settings/Settings';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
               <Route path="/loans/new" element={<LoanForm />} />
               <Route path="/loans/:id" element={<LoanDetail />} />
               <Route path="/reports" element={<ReportsDashboard />} />
+              <Route path="/settings" element={<Settings />} />
               {/* Future protected routes go here */}
             </Route>
           </Route>

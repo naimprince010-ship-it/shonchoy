@@ -1,4 +1,5 @@
 const axios = require('axios');
+const prisma = require('../utils/prisma');
 
 /**
  * Converts local phone number format (01xxxxxxxxx) to international format (8801xxxxxxxxx).
@@ -21,6 +22,16 @@ function formatPhone(phone) {
  */
 async function sendSMS(phone, message) {
   try {
+    // Check if SMS is enabled globally
+    const smsSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'SMS_ENABLED' }
+    });
+    
+    if (smsSetting && smsSetting.value === 'false') {
+      console.log(`⚠️ SMS disabled system-wide. Skipping SMS to ${phone}.`);
+      return true; // Return true so transactions can proceed normally
+    }
+
     const formattedPhone = formatPhone(phone);
     
     // Check if required environment variables are set
