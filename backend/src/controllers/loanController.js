@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { logActivity } = require('../utils/auditLogger');
 const { generateInstallmentSchedule } = require('../services/loanCalculationService');
 const { sendSMS } = require('../services/smsService');
 
@@ -67,6 +68,8 @@ async function approveLoan(req, res) {
         approved_by,
       },
     });
+
+    await logActivity(req.user.id, req.user.name, 'LOAN_APPROVED', 'Loan', loan.id);
 
     return res.json({ message: 'Loan approved successfully', data: updatedLoan });
   } catch (err) {
@@ -228,6 +231,7 @@ async function disburseLoan(req, res) {
       sendSMS(finalLoan.client.phone, message);
     }
 
+    await logActivity(req.user.id, req.user.name, 'LOAN_DISBURSED', 'Loan', loan.id);
 
     return res.json({ message: 'Loan disbursed successfully', data: finalLoan });
   } catch (err) {
@@ -355,6 +359,8 @@ async function addRepayment(req, res) {
         sendSMS(client.phone, message);
       }
     }
+
+    await logActivity(req.user.id, req.user.name, 'REPAYMENT_ADDED', 'Loan', loan.id, { amount: paymentAmount });
 
     return res.json({
       message: 'Repayment added successfully.',

@@ -14,6 +14,7 @@ import LoanForm from './pages/loans/LoanForm';
 import LoanDetail from './pages/loans/LoanDetail';
 import ReportsDashboard from './pages/reports/ReportsDashboard';
 import Settings from './pages/settings/Settings';
+import AuditLog from './pages/settings/AuditLog';
 import UserManagement from './pages/users/UserManagement';
 import { Toaster } from 'react-hot-toast';
 

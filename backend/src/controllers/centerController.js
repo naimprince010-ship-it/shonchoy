@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 async function getCenters(req, res) {
   try {
@@ -38,6 +39,16 @@ async function createCenter(req, res) {
         meeting_day,
       },
     });
+
+    await logActivity({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'CENTER_CREATED',
+      entity: 'Center',
+      entityId: center.id,
+      details: { name, branch_id: parseInt(branch_id, 10) }
+    });
+
     return res.status(201).json(center);
   } catch (err) {
     console.error('Error creating center:', err);

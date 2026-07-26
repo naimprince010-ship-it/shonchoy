@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 async function getClients(req, res) {
   try {
@@ -104,6 +105,9 @@ async function createClient(req, res) {
         savings_account: true,
       }
     });
+
+    await logActivity(req.user.id, req.user.name, 'CLIENT_CREATED', 'Client', client.id);
+
     return res.status(201).json(client);
   } catch (err) {
     console.error('Error creating client:', err);
@@ -149,6 +153,8 @@ async function updateClient(req, res) {
         status: status !== undefined ? status : undefined,
       },
     });
+
+    await logActivity(req.user.id, req.user.name, 'CLIENT_UPDATED', 'Client', client.id);
 
     return res.json(client);
   } catch (err) {

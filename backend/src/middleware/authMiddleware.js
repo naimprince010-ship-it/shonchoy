@@ -18,7 +18,14 @@ function authMiddleware(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = { id: decoded.id, role: decoded.role };
+    req.user = { id: decoded.id, role: decoded.role, name: decoded.name };
+
+    if (!req.user.name) {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+      if (user) req.user.name = user.name;
+    }
 
     if (req.user.role === 'DEMO' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       return res.status(403).json({ error: 'Demo accounts are read-only' });

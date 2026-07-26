@@ -236,3 +236,13 @@ model SystemSetting {
   updated_at DateTime @default(now()) @updatedAt
 }
 
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  user_id     Int?
+  user_name   String?
+  action      String
+  entity_type String
+  entity_id   Int?
+  details     Json?
+  created_at  DateTime @default(now())
+}

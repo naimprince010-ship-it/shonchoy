@@ -21,29 +21,34 @@ async function login(req, res) {
       });
     }
 
+    const { logActivity } = require('../utils/auditLogger');
+
     // Find user by phone or email
     const user = await prisma.user.findFirst({
       where: phone ? { phone } : { email },
     });
 
     if (!user) {
+      if (phone) await logActivity(null, null, 'LOGIN_FAILED', 'User', null, { phone });
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     // Check if user is active
     if (user.is_active === false) {
+      await logActivity(user.id, user.name, 'LOGIN_FAILED', 'User', user.id, { reason: 'Deactivated' });
       return res.status(403).json({ error: 'This account has been deactivated.' });
     }
 
     // Compare password
     const isMatch = await comparePassword(password, user.password_hash);
     if (!isMatch) {
+      await logActivity(user.id, user.name, 'LOGIN_FAILED', 'User', user.id, { reason: 'Invalid password' });
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, name: user.name },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );

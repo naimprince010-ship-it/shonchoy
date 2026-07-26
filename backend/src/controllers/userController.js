@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const { hashPassword, comparePassword } = require('../utils/hashPassword');
+const { logActivity } = require('../utils/auditLogger');
 
 async function getUsers(req, res) {
   try {
@@ -57,6 +58,15 @@ async function createUser(req, res) {
       select: { id: true, name: true, phone: true, role: true, is_active: true }
     });
 
+    await logActivity({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'USER_CREATED',
+      entity: 'User',
+      entityId: newUser.id,
+      details: { role, phone }
+    });
+
     return res.status(201).json({ message: 'User created successfully.', user: newUser });
   } catch (err) {
     console.error('Error creating user:', err);
@@ -90,6 +100,15 @@ async function deactivateUser(req, res) {
       data: { is_active: false }
     });
 
+    await logActivity({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'USER_DEACTIVATED',
+      entity: 'User',
+      entityId: targetUserId,
+      details: { role: targetUser.role }
+    });
+
     return res.json({ message: 'User deactivated successfully.' });
   } catch (err) {
     console.error('Error deactivating user:', err);
@@ -104,6 +123,16 @@ async function reactivateUser(req, res) {
       where: { id: targetUserId },
       data: { is_active: true }
     });
+
+    await logActivity({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'USER_REACTIVATED',
+      entity: 'User',
+      entityId: targetUserId,
+      details: {}
+    });
+
     return res.json({ message: 'User reactivated successfully.' });
   } catch (err) {
     console.error('Error reactivating user:', err);
@@ -153,6 +182,15 @@ async function resetPassword(req, res) {
     await prisma.user.update({
       where: { id: targetUserId },
       data: { password_hash: newPasswordHash }
+    });
+
+    await logActivity({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'USER_PASSWORD_RESET',
+      entity: 'User',
+      entityId: targetUserId,
+      details: {}
     });
 
     return res.json({ message: 'Password reset successfully.' });

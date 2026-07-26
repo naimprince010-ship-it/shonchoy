@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 async function getGroups(req, res) {
   try {
@@ -35,6 +36,16 @@ async function createGroup(req, res) {
         center_id: parseInt(center_id, 10),
       },
     });
+
+    await logActivity({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'GROUP_CREATED',
+      entity: 'Group',
+      entityId: group.id,
+      details: { name, center_id: parseInt(center_id, 10) }
+    });
+
     return res.status(201).json(group);
   } catch (err) {
     console.error('Error creating group:', err);

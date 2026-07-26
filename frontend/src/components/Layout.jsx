@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings, UserCog } from 'lucide-react';
+import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings, UserCog, History } from 'lucide-react';
 import ChangePasswordModal from '../pages/users/ChangePasswordModal';
 
 const Layout = () => {
@@ -26,6 +26,7 @@ const Layout = () => {
 
   if (user?.role === 'ADMIN') {
     navItems.push({ name: 'User Management', path: '/users', icon: <UserCog className="w-5 h-5 mr-3" /> });
+    navItems.push({ name: 'Activity Log', path: '/audit-logs', icon: <History className="w-5 h-5 mr-3" /> });
     navItems.push({ name: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5 mr-3" /> });
   }
 

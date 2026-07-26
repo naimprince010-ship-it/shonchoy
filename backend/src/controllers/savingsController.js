@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 async function deposit(req, res) {
   const { savings_account_id, amount } = req.body;
@@ -50,6 +51,8 @@ async function deposit(req, res) {
 
       return { transaction, updatedAccount };
     });
+
+    await logActivity(req.user.id, req.user.name, 'SAVINGS_DEPOSITED', 'SavingsAccount', result.updatedAccount.id, { amount });
 
     return res.status(201).json({ message: 'Deposit successful', data: result });
   } catch (err) {
@@ -116,6 +119,8 @@ async function withdraw(req, res) {
 
       return { transaction, updatedAccount };
     });
+
+    await logActivity(req.user.id, req.user.name, 'SAVINGS_WITHDRAWN', 'SavingsAccount', result.updatedAccount.id, { amount });
 
     return res.status(201).json({ message: 'Withdrawal successful', data: result });
   } catch (err) {
