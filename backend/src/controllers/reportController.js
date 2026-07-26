@@ -30,7 +30,7 @@ async function getPortfolioSummary(req, res) {
       _sum: { principal_amount: true },
       where: {
         ...loanFilter,
-        status: 'DISBURSED'
+        status: { in: ['DISBURSED', 'CLOSED'] }
       }
     });
     

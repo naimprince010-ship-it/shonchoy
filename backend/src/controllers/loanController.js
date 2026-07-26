@@ -248,7 +248,10 @@ async function addRepayment(req, res) {
     }
 
     // 1. Fetch Loan and validate status
-    const loan = await prisma.loan.findUnique({ where: { id: parseInt(id, 10) } });
+    const loan = await prisma.loan.findUnique({ 
+      where: { id: parseInt(id, 10) },
+      include: { schedules: true }
+    });
     if (!loan) {
       return res.status(404).json({ error: 'Loan not found.' });
     }
@@ -288,10 +291,16 @@ async function addRepayment(req, res) {
     const newTotalPaid = totalPaidSoFar + paymentAmount;
     const newStatus = newTotalPaid >= totalDue ? 'PAID' : 'PENDING';
 
+    // Check if the entire loan is fully paid
+    const isThisInstallmentNowPaid = newStatus === 'PAID';
+    const otherInstallments = loan.schedules.filter(s => s.id !== schedule.id);
+    const areOtherInstallmentsPaid = otherInstallments.every(s => s.status === 'PAID');
+    const isLoanFullyPaid = isThisInstallmentNowPaid && areOtherInstallmentsPaid;
+
     // 4. Perform Transaction
     const transactionDate = new Date();
     
-    const [repayment, updatedSchedule, cashTx] = await prisma.$transaction([
+    const transactionOperations = [
       // A. Create Repayment
       prisma.loanRepayment.create({
         data: {
@@ -320,7 +329,21 @@ async function addRepayment(req, res) {
           transaction_date: transactionDate
         }
       })
-    ]);
+    ];
+
+    // D. Update Loan Status to CLOSED if fully paid
+    if (isLoanFullyPaid) {
+      transactionOperations.push(
+        prisma.loan.update({
+          where: { id: loan.id },
+          data: { status: 'CLOSED' }
+        })
+      );
+    }
+
+    const transactionResults = await prisma.$transaction(transactionOperations);
+    const repayment = transactionResults[0];
+    const updatedSchedule = transactionResults[1];
 
     // --- Send Repayment SMS ---
     // The SMS is sent *after* the main transaction succeeds. Any errors are caught within sendSMS.
