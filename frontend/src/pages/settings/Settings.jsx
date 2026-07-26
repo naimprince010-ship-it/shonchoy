@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import axiosClient from '../../api/axiosClient';
 
 const Settings = () => {
   const [smsEnabled, setSmsEnabled] = useState(true);
@@ -13,7 +13,7 @@ const Settings = () => {
 
   const fetchSmsStatus = async () => {
     try {
-      const response = await api.get('/settings/sms-status');
+      const response = await axiosClient.get('/settings/sms-status');
       setSmsEnabled(response.data.enabled);
     } catch (error) {
       console.error('Failed to load SMS settings:', error);
@@ -26,7 +26,7 @@ const Settings = () => {
   const handleToggleSms = async () => {
     try {
       const newValue = !smsEnabled;
-      const response = await api.put('/settings/sms-status', { enabled: newValue });
+      const response = await axiosClient.put('/settings/sms-status', { enabled: newValue });
       setSmsEnabled(response.data.enabled);
       toast.success(response.data.message);
     } catch (error) {
