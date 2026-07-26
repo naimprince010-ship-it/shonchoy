@@ -21,6 +21,7 @@ model User {
   password_hash String
   role          Role
   branch_id     Int?
+  is_active     Boolean  @default(true)
   branch        Branch?  @relation(fields: [branch_id], references: [id])
   created_at    DateTime @default(now())
 

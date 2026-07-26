@@ -30,6 +30,11 @@ async function login(req, res) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
+    // Check if user is active
+    if (user.is_active === false) {
+      return res.status(403).json({ error: 'This account has been deactivated.' });
+    }
+
     // Compare password
     const isMatch = await comparePassword(password, user.password_hash);
     if (!isMatch) {

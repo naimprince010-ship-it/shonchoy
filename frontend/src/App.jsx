@@ -14,6 +14,7 @@ import LoanForm from './pages/loans/LoanForm';
 import LoanDetail from './pages/loans/LoanDetail';
 import ReportsDashboard from './pages/reports/ReportsDashboard';
 import Settings from './pages/settings/Settings';
+import UserManagement from './pages/users/UserManagement';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
               <Route path="/loans/:id" element={<LoanDetail />} />
               <Route path="/reports" element={<ReportsDashboard />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/users" element={<UserManagement />} />
               {/* Future protected routes go here */}
             </Route>
           </Route>

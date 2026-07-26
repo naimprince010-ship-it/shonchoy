@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings, UserCog } from 'lucide-react';
+import ChangePasswordModal from '../pages/users/ChangePasswordModal';
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -23,6 +25,7 @@ const Layout = () => {
   ];
 
   if (user?.role === 'ADMIN') {
+    navItems.push({ name: 'User Management', path: '/users', icon: <UserCog className="w-5 h-5 mr-3" /> });
     navItems.push({ name: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5 mr-3" /> });
   }
 
@@ -86,6 +89,12 @@ const Layout = () => {
           
           <div className="flex items-center space-x-4">
             <button
+              onClick={() => setIsChangePasswordOpen(true)}
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Change Password
+            </button>
+            <button
               onClick={handleLogout}
               className="btn-secondary py-1.5 flex items-center"
             >
@@ -94,6 +103,10 @@ const Layout = () => {
             </button>
           </div>
         </header>
+
+        {isChangePasswordOpen && (
+          <ChangePasswordModal onClose={() => setIsChangePasswordOpen(false)} />
+        )}
 
         {/* Scrollable Area */}
         <main key={location.pathname} className="flex-1 overflow-y-auto bg-slate-50 animate-fade-in">
