@@ -14,6 +14,7 @@ const loanProductRoutes = require('./routes/loanProductRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 const { authMiddleware } = require('./middleware/authMiddleware');
+const { initCronJobs } = require('./jobs/cronJobs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,6 +41,8 @@ app.use('/api/users', authMiddleware, userRoutes);
 app.get('/', (req, res) => {
   res.json({ message: 'MFI API MVP is running!' });
 });
+// Initialize Cron Jobs
+initCronJobs();
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

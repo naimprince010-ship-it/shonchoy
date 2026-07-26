@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const { generateInstallmentSchedule } = require('../services/loanCalculationService');
+const { sendSMS } = require('../services/smsService');
 
 async function createLoanApplication(req, res) {
   try {
@@ -218,6 +219,16 @@ async function disburseLoan(req, res) {
       }
     });
 
+    // --- Send Disbursement SMS ---
+    // The SMS is sent *after* the main transaction succeeds. Any errors are caught within sendSMS.
+    if (finalLoan.client && finalLoan.client.phone) {
+      const message = `প্রিয় গ্রাহক, আপনার ${loan.principal_amount} টাকার ঋণ সফলভাবে বিতরণ করা হয়েছে। - MFI System`;
+      // Don't await to avoid blocking the API response, or await it if preferred.
+      // Since it has its own try/catch, we can just call it asynchronously.
+      sendSMS(finalLoan.client.phone, message);
+    }
+
+
     return res.json({ message: 'Loan disbursed successfully', data: finalLoan });
   } catch (err) {
     console.error('Error disbursing loan:', err);
@@ -310,6 +321,17 @@ async function addRepayment(req, res) {
         }
       })
     ]);
+
+    // --- Send Repayment SMS ---
+    // The SMS is sent *after* the main transaction succeeds. Any errors are caught within sendSMS.
+    if (loan.client_id) {
+      // We need the client's phone number, so let's fetch it, since it wasn't fetched initially in `loan`.
+      const client = await prisma.client.findUnique({ where: { id: loan.client_id } });
+      if (client && client.phone) {
+        const message = `প্রিয় গ্রাহক, আপনার ${paymentAmount} টাকার কিস্তি সফলভাবে জমা হয়েছে। ধন্যবাদ। - MFI System`;
+        sendSMS(client.phone, message);
+      }
+    }
 
     return res.json({
       message: 'Repayment added successfully.',

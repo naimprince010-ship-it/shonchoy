@@ -181,6 +181,7 @@ model LoanInstallmentSchedule {
   interest_due       Decimal           @db.Decimal(12, 2)
   total_due          Decimal           @db.Decimal(12, 2)
   status             InstallmentStatus @default(PENDING)
+  reminder_sent_at   DateTime?
 
   loan       Loan            @relation(fields: [loan_id], references: [id])
   repayments LoanRepayment[]

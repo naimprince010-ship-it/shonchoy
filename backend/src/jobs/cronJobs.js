@@ -1,0 +1,74 @@
+const cron = require('node-cron');
+const prisma = require('../utils/prisma');
+const { sendSMS } = require('../services/smsService');
+
+// This function will run every day at 8:00 AM
+// Format: '0 8 * * *' (Minute: 0, Hour: 8)
+function initCronJobs() {
+  console.log('⏳ Initializing Cron Jobs...');
+
+  cron.schedule('0 8 * * *', async () => {
+    console.log('⏰ Running daily due-date reminder job...');
+    
+    try {
+      const today = new Date();
+      // Set to start of tomorrow
+      const tomorrowStart = new Date(today);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+      tomorrowStart.setHours(0, 0, 0, 0);
+      
+      // Set to end of tomorrow
+      const tomorrowEnd = new Date(tomorrowStart);
+      tomorrowEnd.setHours(23, 59, 59, 999);
+
+      // Find pending installments due tomorrow that haven't had a reminder sent yet
+      const upcomingInstallments = await prisma.loanInstallmentSchedule.findMany({
+        where: {
+          due_date: {
+            gte: tomorrowStart,
+            lte: tomorrowEnd
+          },
+          status: 'PENDING',
+          reminder_sent_at: null
+        },
+        include: {
+          loan: {
+            include: {
+              client: true
+            }
+          }
+        }
+      });
+
+      console.log(`Found ${upcomingInstallments.length} installments due tomorrow for reminder.`);
+
+      for (const installment of upcomingInstallments) {
+        const client = installment.loan.client;
+        if (client && client.phone) {
+          const message = `প্রিয় গ্রাহক, আগামীকাল আপনার ${installment.total_due} টাকার কিস্তি পরিশোধের শেষ দিন। - MFI System`;
+          
+          // Try sending the SMS
+          const success = await sendSMS(client.phone, message);
+          
+          // If successful, update the database so we don't send it again
+          if (success) {
+            await prisma.loanInstallmentSchedule.update({
+              where: { id: installment.id },
+              data: {
+                reminder_sent_at: new Date()
+              }
+            });
+          }
+        }
+      }
+
+      console.log('✅ Daily due-date reminder job completed.');
+    } catch (error) {
+      console.error('❌ Error running daily due-date reminder job:', error);
+    }
+  });
+}
+
+module.exports = {
+  initCronJobs
+};
