@@ -38,6 +38,7 @@ function App() {
               <Route path="/reports" element={<ReportsDashboard />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/audit-logs" element={<AuditLog />} />
               {/* Future protected routes go here */}
             </Route>
           </Route>
