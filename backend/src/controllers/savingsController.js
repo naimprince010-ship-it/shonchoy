@@ -160,4 +160,44 @@ async function getClientTransactions(req, res) {
   }
 }
 
-module.exports = { deposit, withdraw, getClientTransactions };
+async function getAllSavings(req, res) {
+  try {
+    const { role, id, branch_id } = req.user;
+    
+    // Base filter: only ACTIVE clients
+    let where = {
+      client: {
+        status: 'ACTIVE'
+      }
+    };
+
+    // Role-based filtering
+    if (role === 'FIELD_OFFICER') {
+      where.client.group = { center: { field_officer_id: id } };
+    } else if (role === 'BRANCH_MANAGER') {
+      where.client.group = { center: { branch_id: branch_id } };
+    }
+
+    const savingsAccounts = await prisma.savingsAccount.findMany({
+      where,
+      include: {
+        client: {
+          select: { id: true, name: true, phone: true }
+        },
+        transactions: {
+          orderBy: { transaction_date: 'desc' },
+          take: 1,
+          select: { transaction_date: true }
+        }
+      },
+      orderBy: { client: { name: 'asc' } }
+    });
+
+    res.json(savingsAccounts);
+  } catch (err) {
+    console.error('Error fetching all savings:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+module.exports = { deposit, withdraw, getClientTransactions, getAllSavings };

@@ -17,6 +17,7 @@ import Settings from './pages/settings/Settings';
 import AuditLog from './pages/settings/AuditLog';
 import UserManagement from './pages/users/UserManagement';
 import { Toaster } from 'react-hot-toast';
+import SavingsList from './pages/savings/SavingsList';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/savings" element={<SavingsList />} />
               <Route path="/clients" element={<ClientList />} />
               <Route path="/clients/new" element={<ClientForm />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
