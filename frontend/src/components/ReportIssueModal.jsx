@@ -17,7 +17,7 @@ export default function ReportIssueModal({ isOpen, onClose }) {
 
     setLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/feedback`, { message }, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/feedback`, { message }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       toast.success('Issue reported successfully. Thank you!');

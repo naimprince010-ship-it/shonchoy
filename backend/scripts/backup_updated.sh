@@ -1,6 +1,6 @@
 #!/bin/bash
 BACKUP_DIR="/root/backups"
-DB_URL="postgresql://neondb_owner:F6C3VIfHnsay@ep-holy-boat-axokevhx-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DB_URL="postgresql://neondb_owner:npg_Whntq70XHkVy@ep-holy-boat-axokevhx-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="$BACKUP_DIR/backup_$TIMESTAMP.sql"
 
