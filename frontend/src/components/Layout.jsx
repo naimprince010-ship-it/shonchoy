@@ -1,14 +1,46 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings, UserCog, History } from 'lucide-react';
+import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings, UserCog, History, Bell } from 'lucide-react';
 import ChangePasswordModal from '../pages/users/ChangePasswordModal';
+import axiosClient from '../api/axiosClient';
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
+
+  const [notifications, setNotifications] = useState({ total: 0, overdue: [], pending_approvals: [] });
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef(null);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await axiosClient.get('/notifications');
+        setNotifications(res.data);
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    };
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  // Click outside listener for notification dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -89,6 +121,78 @@ const Layout = () => {
           <div className="flex-1"></div>
           
           <div className="flex items-center space-x-4">
+            {/* Notification Bell */}
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                className="relative p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-full focus:outline-none transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {notifications.total > 0 && (
+                  <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
+                )}
+              </button>
+              
+              {isNotificationOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-slate-100 overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <h3 className="text-sm font-semibold text-slate-800">Notifications</h3>
+                    <span className="bg-primary-100 text-primary-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                      {notifications.total} New
+                    </span>
+                  </div>
+                  
+                  <div className="max-h-[400px] overflow-y-auto">
+                    {notifications.total === 0 ? (
+                      <div className="px-4 py-8 text-center text-slate-500 text-sm">
+                        No new notifications.
+                      </div>
+                    ) : (
+                      <>
+                        {notifications.overdue.length > 0 && (
+                          <div className="py-2">
+                            <div className="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">
+                              Overdue Installments
+                            </div>
+                            {notifications.overdue.map(notif => (
+                              <Link 
+                                key={notif.id}
+                                to={`/loans/${notif.loan_id}`}
+                                onClick={() => setIsNotificationOpen(false)}
+                                className="block px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                              >
+                                <p className="text-sm font-medium text-slate-800">{notif.message}</p>
+                                <p className="text-xs text-red-600 font-semibold mt-1">Due: ৳{notif.amount}</p>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {notifications.pending_approvals.length > 0 && (
+                          <div className="py-2 border-t border-slate-100">
+                            <div className="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">
+                              Pending Approvals
+                            </div>
+                            {notifications.pending_approvals.map(notif => (
+                              <Link 
+                                key={notif.id}
+                                to={`/loans/${notif.loan_id}`}
+                                onClick={() => setIsNotificationOpen(false)}
+                                className="block px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                              >
+                                <p className="text-sm font-medium text-slate-800">{notif.message}</p>
+                                <p className="text-xs text-orange-600 font-semibold mt-1">Amount: ৳{notif.amount}</p>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => setIsChangePasswordOpen(true)}
               className="text-sm font-medium text-slate-600 hover:text-slate-900"

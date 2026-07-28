@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 
 async function getAuditLogs(req, res) {
   try {
-    const { page = 1, limit = 20, action, entity_type } = req.query;
+    const { page = 1, limit = 20, action, entity_type, entity_id } = req.query;
     
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -10,6 +10,7 @@ async function getAuditLogs(req, res) {
     const where = {};
     if (action) where.action = action;
     if (entity_type) where.entity_type = entity_type;
+    if (entity_id) where.entity_id = parseInt(entity_id, 10);
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({

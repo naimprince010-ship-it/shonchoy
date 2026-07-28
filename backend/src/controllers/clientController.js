@@ -140,6 +140,21 @@ async function updateClient(req, res) {
       }
     }
 
+    const fieldsToCheck = ['name', 'nid_number', 'phone', 'address', 'photo_url', 'guardian_name', 'group_id', 'status'];
+    const changes = [];
+
+    fieldsToCheck.forEach(field => {
+      if (req.body[field] !== undefined) {
+        if (field === 'group_id') {
+          if (parseInt(req.body.group_id, 10) !== existingClient.group_id) {
+            changes.push({ field, old_value: existingClient.group_id, new_value: parseInt(req.body.group_id, 10) });
+          }
+        } else if (req.body[field] !== existingClient[field]) {
+          changes.push({ field, old_value: existingClient[field], new_value: req.body[field] });
+        }
+      }
+    });
+
     const client = await prisma.client.update({
       where: { id: parseInt(id, 10) },
       data: {
@@ -154,7 +169,7 @@ async function updateClient(req, res) {
       },
     });
 
-    await logActivity(req.user.id, req.user.name, 'CLIENT_UPDATED', 'Client', client.id);
+    await logActivity(req.user.id, req.user.name, 'CLIENT_UPDATED', 'Client', client.id, { changes });
 
     return res.json(client);
   } catch (err) {

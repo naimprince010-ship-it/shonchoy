@@ -10,6 +10,8 @@ const ClientDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [editHistory, setEditHistory] = useState([]);
+
   // Savings Modal State
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [savingsAction, setSavingsAction] = useState('DEPOSIT'); // DEPOSIT or WITHDRAWAL
@@ -26,12 +28,14 @@ const ClientDetail = () => {
   const fetchClientData = async () => {
     try {
       setLoading(true);
-      const [clientRes, txRes] = await Promise.all([
+      const [clientRes, txRes, historyRes] = await Promise.all([
         axiosClient.get(`/clients/${id}`),
-        axiosClient.get(`/savings/${id}/transactions`).catch(() => ({ data: { transactions: [] } })) // Fallback if no savings account yet
+        axiosClient.get(`/savings/${id}/transactions`).catch(() => ({ data: { transactions: [] } })), // Fallback if no savings account yet
+        axiosClient.get(`/audit-logs?entity_type=Client&entity_id=${id}&action=CLIENT_UPDATED`).catch(() => ({ data: { data: [] } }))
       ]);
       setClient(clientRes.data);
       setTransactions(txRes.data.transactions || []);
+      setEditHistory(historyRes.data.data || []);
       setError(null);
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -348,6 +352,41 @@ const ClientDetail = () => {
             </div>
           </div>
 
+        </div>
+      </div>
+
+      {/* Edit History Section */}
+      <div className="card mt-6">
+        <div className="px-6 py-5 border-b border-slate-200">
+          <h3 className="text-lg font-medium text-slate-900">Edit History</h3>
+        </div>
+        <div className="p-6">
+          {editHistory.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-4">No edit history found for this client.</p>
+          ) : (
+            <div className="space-y-6">
+              {editHistory.map(log => (
+                <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-1">
+                  <div className="text-sm font-medium text-slate-900">
+                    Updated by {log.user_name} on {new Date(log.created_at).toLocaleString()}
+                  </div>
+                  {log.details?.changes?.length > 0 ? (
+                    <ul className="mt-2 space-y-1">
+                      {log.details.changes.map((change, idx) => (
+                        <li key={idx} className="text-sm text-slate-600">
+                          <span className="font-medium capitalize">{change.field.replace('_', ' ')}:</span>{' '}
+                          <span className="line-through text-red-500">{String(change.old_value)}</span>{' '}
+                          <span className="text-emerald-600">→ {String(change.new_value)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-500 mt-1">Status changed or no specific fields logged.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
