@@ -64,6 +64,37 @@ async function runDailyReminder() {
   }
 }
 
+const axios = require('axios');
+
+async function runSmsBalanceCheck() {
+  console.log('⏰ Running daily SMS balance check...');
+  try {
+    const username = process.env.MIMSMS_USERNAME;
+    const apikey = process.env.MIMSMS_API_KEY;
+    
+    if (!username || !apikey) {
+      console.log('⚠️ SMS configuration missing. Skipping balance check.');
+      return;
+    }
+
+    const payload = { UserName: username, Apikey: apikey };
+    const res = await axios.post('https://api.mimsms.com/api/V2/BalanceCheck', payload);
+    
+    if (res.data && res.data.data && res.data.data.length > 0) {
+      const balance = parseFloat(res.data.data[0].balance);
+      console.log(`Current MIM SMS Balance: ৳${balance}`);
+      
+      if (balance < 50) {
+        console.log('⚠️ SMS Balance is critically low!');
+        // Send alert to admin
+        await sendSMS('01938264923', `⚠️ Alert: MFI system SMS balance is low (৳${balance}). Please recharge soon.`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error checking SMS balance:', error.response ? error.response.data : error.message);
+  }
+}
+
 // This function will run every day at 8:00 AM
 // Format: '0 8 * * *' (Minute: 0, Hour: 8)
 function initCronJobs() {
@@ -73,9 +104,15 @@ function initCronJobs() {
     scheduled: true,
     timezone: "Asia/Dhaka"
   });
+
+  cron.schedule('0 9 * * *', runSmsBalanceCheck, {
+    scheduled: true,
+    timezone: "Asia/Dhaka"
+  });
 }
 
 module.exports = {
   initCronJobs,
-  runDailyReminder
+  runDailyReminder,
+  runSmsBalanceCheck
 };

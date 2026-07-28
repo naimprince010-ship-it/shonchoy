@@ -3,12 +3,14 @@ import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-do
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, Users, Folders, FileText, PiggyBank, PieChart, Menu, X, LogOut, Settings, UserCog, History, Bell } from 'lucide-react';
 import ChangePasswordModal from '../pages/users/ChangePasswordModal';
+import ReportIssueModal from './ReportIssueModal';
 import axiosClient from '../api/axiosClient';
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isReportIssueOpen, setIsReportIssueOpen] = useState(false);
   const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState({ total: 0, overdue: [], pending_approvals: [] });
@@ -95,6 +97,12 @@ const Layout = () => {
           ))}
         </nav>
         <div className="p-4 border-t border-slate-800">
+          <button
+            onClick={() => setIsReportIssueOpen(true)}
+            className="w-full flex items-center justify-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-colors mb-4 text-sm"
+          >
+            Report an Issue
+          </button>
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold uppercase">
               {user?.name?.charAt(0) || 'U'}
@@ -211,6 +219,9 @@ const Layout = () => {
 
         {isChangePasswordOpen && (
           <ChangePasswordModal onClose={() => setIsChangePasswordOpen(false)} />
+        )}
+        {isReportIssueOpen && (
+          <ReportIssueModal isOpen={isReportIssueOpen} onClose={() => setIsReportIssueOpen(false)} />
         )}
 
         {/* Scrollable Area */}

@@ -17,6 +17,7 @@ const smsRoutes = require('./routes/smsRoutes');
 const userRoutes = require('./routes/userRoutes');
 const auditLogRoutes = require('./routes/auditLogRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const feedbackRoutes = require('./routes/feedbackRoutes');
 const { authMiddleware } = require('./middleware/authMiddleware');
 const { initCronJobs } = require('./jobs/cronJobs');
 
@@ -44,6 +45,7 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/audit-logs', authMiddleware, auditLogRoutes);
 app.use('/api/notifications', authMiddleware, notificationRoutes);
+app.use('/api/feedback', authMiddleware, feedbackRoutes);
 // Health check
 app.get('/', (req, res) => {
   res.json({ message: 'MFI API MVP is running!' });
